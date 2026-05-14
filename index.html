@@ -1,0 +1,2690 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcus</title>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.20.0/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+  :root {
+    --color-bg-primary: #FFFFFF;
+    --color-bg-secondary: #F5F4EE;
+    --color-bg-tertiary: #ECEAE2;
+    --color-text-primary: #1F1E1D;
+    --color-text-secondary: #5A5852;
+    --color-text-tertiary: #888780;
+    --color-border-tertiary: #E5E3DA;
+    --color-border-secondary: #C8C5BB;
+    --color-border-primary: #888780;
+    --color-bg-info: #E6F1FB;
+    --color-text-info: #0C447C;
+    --color-border-info: #185FA5;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .page {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem;
+  }
+  button, input, select {
+    font-family: inherit;
+    font-size: inherit;
+  }
+  button {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--color-text-primary);
+  }
+  button:hover { background: var(--color-bg-secondary); }
+  input[type="text"], input[type="date"], select {
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0 0 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .pro-tab {
+    padding: 8px 14px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-bg-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    transition: all 0.15s;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .pro-tab:hover { background: var(--color-bg-secondary); }
+  .pro-tab.active-petram   { background: #F9D6D6 !important; color: #6B1A1A !important; border: 0.5px solid #A32D2D !important; font-weight: 500; }
+  .pro-tab.active-her      { background: #F9D6D6 !important; color: #6B1A1A !important; border: 0.5px solid #A32D2D !important; font-weight: 500; }
+  .pro-tab.active-vcc      { background: #DCD9F0 !important; color: #312A6E !important; border: 0.5px solid #6A5FC4 !important; font-weight: 500; }
+  .pro-tab.active-immo     { background: #DCD9F0 !important; color: #312A6E !important; border: 0.5px solid #6A5FC4 !important; font-weight: 500; }
+  .pro-tab.active-invest   { background: #DCD9F0 !important; color: #312A6E !important; border: 0.5px solid #6A5FC4 !important; font-weight: 500; }
+  .pro-tab.active-gaac     { background: #D5E7F8 !important; color: #0C447C !important; border: 0.5px solid #185FA5 !important; font-weight: 500; }
+  .pro-tab.active-nest     { background: #D6EBC8 !important; color: #1F3F08 !important; border: 0.5px solid #4D8019 !important; font-weight: 500; }
+  .pro-tab.active-redac    { background: #D6EBC8 !important; color: #1F3F08 !important; border: 0.5px solid #4D8019 !important; font-weight: 500; }
+
+  .tab-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .tab-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .tab-group-sep {
+    width: 1px;
+    height: 22px;
+    background: var(--color-border-tertiary);
+    margin: 0 18px;
+  }
+
+  .col-wrap {
+    display: grid;
+    gap: 12px;
+  }
+  .col-wrap.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .col-wrap.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .col {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .col.drag-over {
+    background: var(--color-bg-info);
+    outline: 1.5px dashed var(--color-border-info);
+  }
+  .col-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+  }
+  .col-title {
+    flex: 1;
+    background: transparent;
+    border: 0.5px solid transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .col-title:hover { border-color: var(--color-border-tertiary); background: var(--color-bg-primary); }
+  .col-title:focus { border-color: var(--color-border-secondary); background: var(--color-bg-primary); outline: none; }
+
+  .todo-card {
+    border-radius: var(--radius-md);
+    border: 0.5px solid var(--color-border-tertiary);
+    background: var(--color-bg-primary);
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+  }
+  .todo-card:active { cursor: grabbing; }
+  .todo-card.dragging { opacity: 0.4; }
+  .todo-card.overdue::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 3px;
+    background: #A32D2D;
+  }
+  .todo-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .todo-body { padding: 8px 10px 10px; }
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 3px 0 3px 0;
+    font-size: 13px;
+    line-height: 1.5;
+    position: relative;
+  }
+  .todo-item.sub { padding-left: 18px; }
+  .todo-item.sub.sub-2 { padding-left: 36px; }
+
+  /* Poignée drag : visible au survol uniquement */
+  .drag-handle {
+    width: 12px;
+    flex-shrink: 0;
+    cursor: grab;
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+    line-height: 1.4;
+    margin-top: 2px;
+    opacity: 0;
+    transition: opacity 0.1s;
+    user-select: none;
+    text-align: center;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .todo-item:hover .drag-handle { opacity: 0.6; }
+  .todo-item:hover .drag-handle:hover { opacity: 1; }
+
+  /* Contrôles (flèches, +, x) visibles au survol uniquement */
+  .todo-item .task-controls {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .todo-item:hover .task-controls { opacity: 1; }
+
+  .todo-item.dragging {
+    opacity: 0.35;
+  }
+  .drop-indicator {
+    height: 2px;
+    background: var(--color-border-info);
+    margin: -1px 0;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .drop-indicator.as-child {
+    background: transparent;
+    border: 1.5px dashed var(--color-border-info);
+    height: 22px;
+    border-radius: 4px;
+    margin: 2px 0 2px 18px;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 11px;
+    color: var(--color-text-info);
+  }
+  .drop-indicator.as-child::after { content: '↳ sous-tâche'; }
+  .check {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-border-secondary);
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+  }
+  .check.done { background: var(--color-text-primary); border-color: var(--color-text-primary); }
+  .check.done::after {
+    content: '\2713';
+    color: var(--color-bg-primary);
+    font-size: 10px;
+    line-height: 1;
+  }
+  .task-text { flex: 1; cursor: text; word-break: break-word; }
+  .task-text.done { text-decoration: line-through; color: var(--color-text-tertiary); }
+
+  .icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .icon-btn:hover { color: var(--color-text-primary); background: var(--color-bg-secondary); }
+  .icon-btn:disabled { cursor: default; }
+
+  .pin-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pin-btn i { font-size: 14px; line-height: 1; }
+  .pin-btn:not(.is-pinned) { color: inherit; opacity: 0.7; }
+  .pin-btn:not(.is-pinned):hover { opacity: 1; background: rgba(0,0,0,0.06); }
+  .pin-btn.is-pinned {
+    background: #FAEEDA !important;
+    color: #BA7517 !important;
+    border: 0.5px solid #EF9F27 !important;
+  }
+  .pin-btn.is-pinned i { color: #BA7517 !important; }
+  .pin-btn.is-pinned:hover { background: #F5DEB0 !important; }
+
+  .alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    color: #A32D2D;
+    background: #FCEBEB;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    border-radius: 4px;
+    position: relative;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+  .cal-day.past { color: var(--color-text-tertiary); opacity: 0.55; }
+  .cal-day.today {
+    background: var(--color-bg-info);
+    color: var(--color-text-info);
+    font-weight: 500;
+  }
+  .cal-day.has-due { font-weight: 500; color: var(--color-text-primary); }
+  .cal-day:hover { outline: 1px solid var(--color-border-secondary); }
+  .cal-dot { width: 4px; height: 4px; border-radius: 50%; margin-top: 1px; }
+
+  .cal-popover {
+    position: absolute;
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    z-index: 50;
+    min-width: 160px;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .cal-popover .palette-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .cal-popover .swatch {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+  }
+  .cal-popover .swatch.clear {
+    background: transparent !important;
+    border: 1px dashed var(--color-border-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--color-text-tertiary);
+  }
+
+  .cal-tooltip {
+    position: absolute;
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    z-index: 60;
+    font-size: 12px;
+    pointer-events: none;
+    max-width: 240px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .cal-tooltip .item { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+  .cal-tooltip .swatch-tip { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 60px;
+    z-index: 1000;
+  }
+  .modal {
+    background: var(--color-bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    width: 360px;
+    max-width: 90%;
+    border: 0.5px solid var(--color-border-secondary);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin: 10px 0 4px;
+  }
+  .modal input[type="text"], .modal input[type="date"], .modal select {
+    width: 100%;
+  }
+  .color-pick { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .color-swatch {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s;
+  }
+  .color-swatch:hover { transform: scale(1.1); }
+  .color-swatch.selected { border-color: var(--color-text-primary); }
+  .emoji-pick { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .emoji-opt {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: transparent;
+    cursor: pointer;
+    font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .emoji-opt.selected {
+    border: 2px solid var(--color-text-primary) !important;
+    background: var(--color-bg-secondary);
+  }
+
+  .empty-col {
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+    color: var(--color-text-tertiary);
+    font-size: 12px;
+    border: 0.5px dashed var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+  }
+  .add-btn {
+    background: transparent;
+    border: 0.5px dashed var(--color-border-secondary);
+    border-radius: var(--radius-md);
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    width: 100%;
+  }
+  .add-btn:hover { background: var(--color-bg-primary); color: var(--color-text-primary); }
+  .add-task-row { display: flex; gap: 4px; margin-top: 4px; }
+  .add-task-row input { flex: 1; height: 28px; font-size: 12px; padding: 0 8px; }
+
+  .due-pill {
+    font-size: 11px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .due-pill.urgent { background: #FCEBEB; color: #791F1F; }
+  .due-pill.soon { background: #FAEEDA; color: #633806; }
+
+  /* Dashboard : 4 zones de remontée */
+  .dash-wrap {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  @media (max-width: 1100px) {
+    .dash-wrap { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .dash-wrap { grid-template-columns: 1fr; }
+  }
+  .dash-zone {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 8px 10px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+  }
+  .dash-zone-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 4px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .dash-zone-head .count {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--color-text-tertiary);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .dash-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dash-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    line-height: 1.3;
+    user-select: none;
+  }
+  .dash-item:hover { background: var(--color-bg-secondary); }
+  .dash-item-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dash-item-due { font-size: 10px; color: var(--color-text-tertiary); white-space: nowrap; }
+  .dash-item-due.urgent { color: #791F1F; font-weight: 500; }
+  .dash-item-due.soon { color: #633806; }
+  .dash-item-marker {
+    width: 4px;
+    align-self: stretch;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .dash-empty {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    padding: 4px 6px;
+  }
+  .dash-tab-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 9px;
+    color: var(--color-text-tertiary);
+    background: var(--color-bg-secondary);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  /* Mise en valeur des listes et tâches */
+  .todo-card.highlighted {
+    box-shadow: 0 0 0 2px #F5C518, 0 0 0 3px rgba(245, 197, 24, 0.25);
+  }
+  .dash-item.highlighted {
+    box-shadow: 0 0 0 1.5px #F5C518, 0 0 0 2.5px rgba(245, 197, 24, 0.25);
+  }
+  .todo-item.highlighted {
+    background: #FFF6D1;
+    border-radius: 3px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  .todo-item.sub.highlighted { padding-left: 18px; }
+  .todo-item.sub.sub-2.highlighted { padding-left: 36px; }
+  .highlight-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .highlight-btn:hover { background: rgba(245, 197, 24, 0.15); color: #B8941A; }
+  .highlight-btn.is-on {
+    color: #B8941A !important;
+    background: #FFF6D1 !important;
+  }
+  .delete-confirm {
+    background: #FCEBEB !important;
+    color: #791F1F !important;
+    border: 0.5px solid #E24B4A !important;
+  }
+  .arrow-stack { display: flex; flex-direction: column; gap: 0; }
+  .arrow-stack .icon-btn { padding: 0 2px; line-height: 0.9; height: 11px; }
+
+  .reset-btn {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+  .reset-btn:hover { color: #A32D2D; }
+
+  /* Bouton récurrent : rond gris, isolé */
+  .recurring-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .recurring-btn:hover { background: #E8E6DE; color: var(--color-text-primary); }
+  .recurring-btn.active {
+    background: #444441 !important;
+    color: #FFFFFF !important;
+    border-color: #444441 !important;
+  }
+  .recurring-btn .ti { font-size: 16px; }
+
+  /* Vue récurrente : remplace les colonnes */
+  .recurring-view {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    min-height: 300px;
+  }
+  .recurring-view-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .recurring-view-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .rec-zone {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .rec-zone-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .rec-zone-title {
+    flex: 1;
+    background: transparent;
+    border: 0.5px solid transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+  .rec-zone-title:hover { border-color: var(--color-border-tertiary); background: var(--color-bg-secondary); }
+  .rec-zone-title:focus { border-color: var(--color-border-secondary); background: var(--color-bg-secondary); outline: none; }
+  .rec-zone-empty {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    padding: 8px 4px;
+    font-style: italic;
+  }
+  .recurring-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .recurring-card {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .recurring-card.upcoming { border-left: 3px solid #BA7517; }
+  .recurring-card.today { border-left: 3px solid #A32D2D; background: #FCEBEB; }
+  .recurring-card-emoji { font-size: 16px; }
+  .recurring-card-title { flex: 1; min-width: 0; }
+  .recurring-card-title .name { font-weight: 500; }
+  .recurring-card-title .meta {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    margin-top: 2px;
+  }
+  .recurring-card .next-date {
+    font-size: 12px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .recurring-card.today .next-date { background: #F9D6D6; color: #6B1A1A; font-weight: 500; }
+  .recurring-card.upcoming .next-date { background: #FAEEDA; color: #633806; }
+
+  .rec-done-btn {
+    background: #EAF3DE;
+    color: #27500A;
+    border: 0.5px solid #639922;
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .rec-done-btn:hover { background: #D8EBC0; }
+
+  .freq-pick {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .freq-opt {
+    padding: 5px 10px;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+  .freq-opt.selected {
+    background: var(--color-bg-info);
+    color: var(--color-text-info);
+    border-color: var(--color-border-info);
+    font-weight: 500;
+  }
+  .weekday-pick {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .weekday-opt {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 0.5px solid var(--color-border-tertiary);
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .weekday-opt.selected {
+    background: var(--color-bg-info);
+    color: var(--color-text-info);
+    border-color: var(--color-border-info);
+    font-weight: 500;
+  }
+
+  /* Pastille distinctive pour récurrences dans le calendrier */
+  .cal-dot.recurring {
+    border-radius: 0;
+    width: 5px;
+    height: 5px;
+    transform: rotate(45deg);
+  }
+
+  .layout-main {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  @media (max-width: 1300px) {
+    .col-wrap.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 1100px) {
+    .col-wrap.cols-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 800px) {
+    .layout-main { grid-template-columns: 1fr; }
+    .col-wrap.cols-3, .col-wrap.cols-4 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>
+    <i class="ti ti-sparkles" style="font-size:20px; vertical-align:-3px"></i>
+    Marcus
+    <button class="reset-btn" onclick="if(confirm('Effacer toutes les données ? Cette action est irréversible.')){localStorage.clear();location.reload();}" style="float:right; font-size:11px">
+      <i class="ti ti-trash" style="font-size:11px"></i> Réinitialiser
+    </button>
+  </h1>
+
+  <div id="pro-app" style="position: relative;">
+    <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+      Chargement...
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const COLORS = [
+    { id: 'pink',   bg: '#FBEAF0', text: '#72243E', border: '#D4537E' },
+    { id: 'red',    bg: '#FCEBEB', text: '#791F1F', border: '#A32D2D' },
+    { id: 'amber',  bg: '#FAEEDA', text: '#633806', border: '#BA7517' },
+    { id: 'yellow', bg: '#FFF4B8', text: '#5C4A00', border: '#D4A800' },
+    { id: 'green',  bg: '#EAF3DE', text: '#27500A', border: '#639922' },
+    { id: 'teal',   bg: '#E1F5EE', text: '#085041', border: '#0F6E56' },
+    { id: 'blue',   bg: '#E6F1FB', text: '#0C447C', border: '#185FA5' },
+    { id: 'purple', bg: '#EEEDFE', text: '#3C3489', border: '#534AB7' },
+    { id: 'gray',   bg: '#F1EFE8', text: '#444441', border: '#888780' }
+  ];
+  const DAY_PALETTE = [
+    { id: 'ferie',    label: 'Férié',       bg: '#FCEBEB', text: '#791F1F' },
+    { id: 'vacances', label: 'Vacances',    bg: '#EAF3DE', text: '#27500A' },
+    { id: 'rdv',      label: 'RDV',         bg: '#E6F1FB', text: '#0C447C' },
+    { id: 'depl',     label: 'Déplacement', bg: '#FAEEDA', text: '#633806' },
+    { id: 'note',     label: 'Note',        bg: '#EEEDFE', text: '#3C3489' }
+  ];
+  const EMOJIS = ['📋', '⚡', '🎯', '📊', '🔍', '💡', '⚙️', '📞', '✉️', '🚀', '🔥', '⭐'];
+
+  // Storage adapter (localStorage in browser)
+  const storage = {
+    get: (k) => {
+      try { const v = localStorage.getItem(k); return v ? { value: v } : null; }
+      catch(e) { return null; }
+    },
+    set: (k, v) => {
+      try { localStorage.setItem(k, v); return true; }
+      catch(e) { return false; }
+    }
+  };
+
+  // Configuration centrale des onglets
+  const TABS = [
+    { id: 'PETRAM',      label: 'PETRAM',      icon: 'ti-building',             activeClass: 'active-petram', group: 'pro' },
+    { id: 'HER',         label: 'HER',         icon: 'ti-building-skyscraper',  activeClass: 'active-her',    group: 'pro' },
+    { id: 'VCC',         label: 'VCC',         icon: 'ti-school',               activeClass: 'active-vcc',    group: 'patrim' },
+    { id: 'CATT.IMMO',   label: 'CATT.IMMO',   icon: 'ti-home',                 activeClass: 'active-immo',   group: 'patrim' },
+    { id: 'CATT.INVEST', label: 'CATT.INVEST', icon: 'ti-cash',                 activeClass: 'active-invest', group: 'patrim' },
+    { id: 'GAAC',        label: 'GAAC',        icon: 'ti-telescope',            activeClass: 'active-gaac',   group: 'astro' },
+    { id: 'NEST',        label: 'NEST',        icon: 'ti-egg',                  activeClass: 'active-nest',   group: 'perso' },
+    { id: 'REDAC',       label: 'REDAC',       icon: 'ti-book-2',               activeClass: 'active-redac',  group: 'perso' }
+  ];
+  const TAB_IDS = TABS.map(t => t.id);
+
+  function defaultColsFor(tab) {
+    const n = tab === 'HER' ? 4 : 3;
+    const cols = [];
+    for (let i = 1; i <= n; i++) {
+      cols.push({ id: 'c'+Math.random().toString(36).slice(2,7), name: 'Axe '+i });
+    }
+    return cols;
+  }
+
+  function emptyTabsObject(builder) {
+    const o = {};
+    TAB_IDS.forEach(t => { o[t] = builder(t); });
+    return o;
+  }
+
+  let state = {
+    tab: 'PETRAM',
+    view: 'columns', // 'columns' ou 'recurring'
+    columns: emptyTabsObject(defaultColsFor),
+    lists: emptyTabsObject(() => []),
+    recurring: [],
+    recurringZones: [
+      { id: 'rec-zone-anniv', name: 'Anniversaires' },
+      { id: 'rec-zone-2', name: 'Zone 2' },
+      { id: 'rec-zone-3', name: 'Zone 3' }
+    ],
+    editingRecurring: null,
+    dayMarks: {},
+    editingList: null,
+    addingTaskTo: null,
+    openPopoverDate: null,
+    popoverPos: null,
+    tooltip: null,
+    confirmDelete: false,
+    dragListId: null,
+    dragOverCol: null,
+    dragTask: null
+  };
+
+  // SEED : données pré-saisies au premier chargement (si localStorage vide)
+  const SEED_DATA = {
+    columns: {
+      PETRAM: [
+        { id: 'col-petram-1', name: 'Audits & risques' },
+        { id: 'col-petram-2', name: 'Suivi' },
+        { id: 'col-petram-3', name: 'Divers' }
+      ],
+      HER: [
+        { id: 'col-her-1', name: 'Stratégie IA & livrables' },
+        { id: 'col-her-2', name: 'Affaires courantes' },
+        { id: 'col-her-3', name: 'Communication & événements' },
+        { id: 'col-her-4', name: 'Comités' }
+      ],
+      GAAC: [
+        { id: 'col-gaac-1', name: 'Conférences' },
+        { id: 'col-gaac-2', name: 'Observations' },
+        { id: 'col-gaac-3', name: 'Communication' }
+      ],
+      VCC: [
+        { id: 'col-vcc-1', name: 'Contenus' },
+        { id: 'col-vcc-2', name: 'Évènements' },
+        { id: 'col-vcc-3', name: 'Réseau' }
+      ],
+      'CATT.IMMO': [
+        { id: 'col-immo-1', name: 'Démarches' },
+        { id: 'col-immo-2', name: 'Suivi banque' },
+        { id: 'col-immo-3', name: 'Travaux' }
+      ],
+      'CATT.INVEST': [
+        { id: 'col-inv-1', name: 'Administratif' },
+        { id: 'col-inv-2', name: 'Opérations' },
+        { id: 'col-inv-3', name: 'Suivi' }
+      ],
+      NEST: [
+        { id: 'col-nest-1', name: 'Maison' },
+        { id: 'col-nest-2', name: 'Santé' },
+        { id: 'col-nest-3', name: 'Divers' }
+      ],
+      REDAC: [
+        { id: 'col-redac-1', name: 'En cours' },
+        { id: 'col-redac-2', name: 'Idées' },
+        { id: 'col-redac-3', name: 'Publiés' }
+      ]
+    },
+    lists: {
+      PETRAM: [
+        {
+          id: 'pl-pierre', columnId: 'col-petram-2',
+          title: 'Tableau suivi pour Pierre',
+          color: 'red', emoji: '⚡', pinned: true,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: []
+        },
+        {
+          id: 'pl-reco', columnId: 'col-petram-2',
+          title: 'Suivi recommandations',
+          color: 'pink', emoji: '📋', pinned: false,
+          dueIntermediate: '2026-06-15', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'LA reco SA60 à gérer (urgent)', done: false, subs: [] },
+            { id: 't2', text: 'Suivi des recommandations juin', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'pl-vf', columnId: 'col-petram-3',
+          title: 'VF', color: 'pink', emoji: '', pinned: false,
+          dueIntermediate: '2026-05-17', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Laver voiture', done: true, subs: [] },
+            { id: 't2', text: 'Appeler AD', done: true, subs: [] },
+            { id: 't3', text: 'Message Christelle', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'pl-risk', columnId: 'col-petram-1',
+          title: 'RISK ASSESSMENT & PLANS D\'AUDITS',
+          color: 'pink', emoji: '🔍', pinned: false,
+          dueIntermediate: '2026-05-20', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 's1', text: 'SIA', done: false, subs: [
+              { id: 's1a', text: 'Email lancement CODIR', done: false, subs: [] },
+              { id: 's1b', text: 'Échéance des retours', done: false, subs: [] },
+              { id: 's1c', text: 'Validation COMITE', done: false, subs: [] },
+              { id: 's1d', text: 'Saisie OMEGA', done: false, subs: [] }
+            ]},
+            { id: 's2', text: 'SIGH', done: false, subs: [
+              { id: 's2a', text: 'Email lancement CODIR', done: false, subs: [] },
+              { id: 's2b', text: 'Échéance des retours', done: false, subs: [] },
+              { id: 's2c', text: 'Validation COMITE', done: false, subs: [] },
+              { id: 's2d', text: 'Saisie OMEGA', done: false, subs: [] }
+            ]},
+            { id: 's3', text: 'SA60', done: false, subs: [
+              { id: 's3a', text: 'Email lancement CODIR', done: false, subs: [] },
+              { id: 's3b', text: 'Échéance des retours', done: false, subs: [] },
+              { id: 's3c', text: 'Validation COMITE', done: false, subs: [] },
+              { id: 's3d', text: 'Saisie OMEGA', done: false, subs: [] }
+            ]},
+            { id: 's4', text: 'PETRAM', done: false, subs: [
+              { id: 's4a', text: 'Création carto', done: false, subs: [] },
+              { id: 's4b', text: 'Échéance des retours', done: false, subs: [] },
+              { id: 's4c', text: 'Validation COMITE', done: false, subs: [] },
+              { id: 's4d', text: 'Saisie OMEGA', done: false, subs: [] }
+            ]}
+          ]
+        },
+        {
+          id: 'pl-igbpce', columnId: 'col-petram-1',
+          title: 'IGBPCE PETRAM-SIA-SIGH',
+          color: 'gray', emoji: '⭐', pinned: true,
+          dueIntermediate: '2026-05-30', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'En attente réunion de clôture', done: false, subs: [] }
+          ]
+        }
+      ],
+      HER: [
+        {
+          id: 'hl-livrables', columnId: 'col-her-1',
+          title: 'livrables', color: 'amber', emoji: '📋', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Documents demandés par baptistes', done: false, subs: [] },
+            { id: 't2', text: 'Comptes rendu des webinaires', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'hl-strategie', columnId: 'col-her-1',
+          title: 'Stratégie IA HER', color: 'amber', emoji: '🎯', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Point structuration après vacances', done: false, subs: [] },
+            { id: 't2', text: 'Accéder IQO (rapport diagnostic + feuille de route data)', done: false, subs: [] },
+            { id: 't3', text: 'Tester l\'accès au site Maya et au e-learning BPCE (1h30)', done: false, subs: [] },
+            { id: 't4', text: 'Contacter José Franco (Data Partner BPCE)', done: false, subs: [] },
+            { id: 't5', text: 'Vérifier les habilitations outils BPCE (Maya, e-learning)', done: false, subs: [] },
+            { id: 't6', text: 'Préparer un webinaire commun Data + IA pour septembre', done: false, subs: [] },
+            { id: 't7', text: 'Référencer les données (internes + externes) par cas d\'usage potentiel', done: false, subs: [] },
+            { id: 't8', text: 'Caler un point de suivi régulier Anne / Vincent', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'hl-impots', columnId: 'col-her-2',
+          title: 'IMPOTS', color: 'red', emoji: '⚡', pinned: true,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: []
+        },
+        {
+          id: 'hl-ldca', columnId: 'col-her-2',
+          title: 'LDCA', color: 'green', emoji: '', pinned: false,
+          dueIntermediate: '2026-04-09', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Communication ++', done: false, subs: [
+              { id: 't1a', text: 'Post unboxing', done: false, subs: [] },
+              { id: 't1b', text: 'Post promo', done: false, subs: [] },
+              { id: 't1c', text: 'Post extrait', done: false, subs: [] }
+            ]},
+            { id: 't2', text: 'Répondre INES', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'hl-dtd', columnId: 'col-her-3',
+          title: 'DreamTeamDay 2026', color: 'blue', emoji: '🚀', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-06-02',
+          tasks: [
+            { id: 't1', text: 'Dates possibles: 26 sept (3 oct écarté)', done: false, subs: [] },
+            { id: 't2', text: 'BattleKart + EVA Henin?', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'hl-epsilon', columnId: 'col-her-3',
+          title: 'ε', color: 'yellow', emoji: '', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: []
+        },
+        {
+          id: 'hl-comites', columnId: 'col-her-4',
+          title: 'COMITES D\'AUDITS & DES RISQUES',
+          color: 'pink', emoji: '🔍', pinned: false,
+          dueIntermediate: '2026-09-10', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 's1', text: 'SIA', done: false, subs: [
+              { id: 's1a', text: 'RA avant le 22 sept', done: false, subs: [] },
+              { id: 's1b', text: 'Comité risques : 22 sept', done: false, subs: [] },
+              { id: 's1c', text: 'Supports avant le 24 sept', done: false, subs: [] },
+              { id: 's1d', text: 'CR Comité Audit : 29 sept', done: false, subs: [] },
+              { id: 's1e', text: 'Date CA :', done: false, subs: [] }
+            ]},
+            { id: 's2', text: 'SIGH', done: false, subs: [
+              { id: 's2a', text: 'RA avant le 30 sept', done: false, subs: [] },
+              { id: 's2b', text: 'Comité risques : 01 oct', done: false, subs: [] },
+              { id: 's2c', text: 'Supports avant le 1 oct', done: false, subs: [] },
+              { id: 's2d', text: 'CR Comité Audit : 09 oct', done: false, subs: [] },
+              { id: 's2e', text: 'Date CA :', done: false, subs: [] }
+            ]},
+            { id: 's3', text: 'SA60', done: false, subs: [
+              { id: 's3a', text: 'RA avant le 21 sept', done: false, subs: [] },
+              { id: 's3b', text: 'Comité risques : ?', done: false, subs: [] },
+              { id: 's3c', text: 'Supports avant le 23 sept', done: false, subs: [] },
+              { id: 's3d', text: 'CR Comité Audit du 28 sept', done: false, subs: [] },
+              { id: 's3e', text: 'Date CA :', done: false, subs: [] }
+            ]},
+            { id: 's4', text: 'PETRAM', done: false, subs: [
+              { id: 's4a', text: 'RA avant le 1 oct', done: false, subs: [] },
+              { id: 's4b', text: 'Supports avant le 2 oct', done: false, subs: [] },
+              { id: 's4c', text: 'CR Comité Audit : 08 octobre', done: false, subs: [] }
+            ]}
+          ]
+        }
+      ],
+      GAAC: [
+        {
+          id: 'gaac-1', columnId: 'col-gaac-1',
+          title: 'Programme 2026', color: 'blue', emoji: '🔭', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-04-30',
+          tasks: [
+            { id: 't1', text: 'Kakemono', done: false, subs: [] },
+            { id: 't2', text: 'Conf improbable', done: false, subs: [] },
+            { id: 't3', text: 'Conf sept 2026 + article "Moteurs fusées"', done: false, subs: [] },
+            { id: 't4', text: 'Saint Veran -> 2027', done: false, subs: [] }
+          ]
+        }
+      ],
+      VCC: [
+        {
+          id: 'vcc-1', columnId: 'col-vcc-1',
+          title: 'Communication & contenu', color: 'green', emoji: '📚', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-09-30',
+          tasks: [
+            { id: 't1', text: 'Posts linkedin', done: false, subs: [] },
+            { id: 't2', text: 'Appeler Antoine pour proposer Conf en ligne', done: false, subs: [] }
+          ]
+        }
+      ],
+      'CATT.IMMO': [
+        {
+          id: 'immo-1', columnId: 'col-immo-2',
+          title: 'Dossier banque', color: 'amber', emoji: '🏠', pinned: false,
+          dueIntermediate: '2026-05-18', dueFinal: '2026-05-30',
+          tasks: [
+            { id: 't1', text: 'Relancer le banquier à date du 30/05', done: false, subs: [] },
+            { id: 't2', text: 'Demander des nouvelles à C&T (Appel) 18/05', done: false, subs: [] }
+          ]
+        }
+      ],
+      'CATT.INVEST': [
+        {
+          id: 'inv-1', columnId: 'col-inv-1',
+          title: 'Administratif courant', color: 'teal', emoji: '💰', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Plastifier mandats', done: false, subs: [] },
+            { id: 't2', text: 'Faire virements 1/4', done: false, subs: [] }
+          ]
+        }
+      ],
+      NEST: [
+        {
+          id: 'nest-1', columnId: 'col-nest-1',
+          title: 'Maison & jardin', color: 'green', emoji: '🏡', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Ranger maison', done: false, subs: [] },
+            { id: 't2', text: 'Finir entretien jardin', done: false, subs: [] },
+            { id: 't3', text: 'Robot tondeuse', done: false, subs: [] },
+            { id: 't4', text: 'Pb de la toiture?', done: false, subs: [] }
+          ]
+        },
+        {
+          id: 'nest-2', columnId: 'col-nest-2',
+          title: 'Santé', color: 'green', emoji: '💪', pinned: false,
+          dueIntermediate: '', dueFinal: '2026-12-31',
+          tasks: [
+            { id: 't1', text: 'Régime et sport', done: false, subs: [] }
+          ]
+        }
+      ],
+      REDAC: []
+    }
+  };
+
+  function load() {
+    try {
+      const r = storage.get('pro_lists');
+      const dm = storage.get('pro_day_marks');
+      const c = storage.get('pro_columns');
+      const rec = storage.get('pro_recurring');
+      const recZ = storage.get('pro_recurring_zones');
+
+      // Premier chargement : aucune donnée en localStorage → on injecte le seed
+      if (!r?.value && !c?.value) {
+        state.columns = JSON.parse(JSON.stringify(SEED_DATA.columns));
+        state.lists = JSON.parse(JSON.stringify(SEED_DATA.lists));
+        save();
+        saveCols();
+      } else {
+        if (r?.value) state.lists = JSON.parse(r.value);
+        if (c?.value) {
+          const loaded = JSON.parse(c.value);
+          if (loaded && typeof loaded === 'object') state.columns = loaded;
+        }
+      }
+      if (dm?.value) state.dayMarks = JSON.parse(dm.value);
+      if (rec?.value) state.recurring = JSON.parse(rec.value);
+      if (recZ?.value) {
+        const z = JSON.parse(recZ.value);
+        if (Array.isArray(z) && z.length > 0) state.recurringZones = z;
+      }
+      // Migration : assigner les récurrences sans zoneId à la première zone
+      const firstZoneId = state.recurringZones[0]?.id;
+      state.recurring.forEach(r => {
+        if (!r.zoneId) r.zoneId = firstZoneId;
+        if (!r.doneHistory) r.doneHistory = r.lastDone ? [r.lastDone] : [];
+      });
+
+      // Migration : assure que chaque onglet de TABS a ses colonnes et son tableau de listes
+      TAB_IDS.forEach(t => {
+        if (!state.columns[t]) state.columns[t] = defaultColsFor(t);
+        if (!state.lists[t]) state.lists[t] = [];
+      });
+      // Migration CATT.CORP → NEST (renommage d'onglet de la version précédente)
+      if (state.lists['CATT.CORP'] && state.lists['CATT.CORP'].length > 0 && state.lists.NEST.length === 0) {
+        state.lists.NEST = state.lists['CATT.CORP'];
+        state.columns.NEST = state.columns['CATT.CORP'] || state.columns.NEST;
+        delete state.lists['CATT.CORP'];
+        delete state.columns['CATT.CORP'];
+        save();
+        saveCols();
+      }
+      // Migration HER : si seulement 3 colonnes, en ajouter une 4e (Axe 4)
+      if (state.columns.HER && state.columns.HER.length === 3) {
+        state.columns.HER.push({ id: 'c'+Math.random().toString(36).slice(2,7), name: 'Axe 4' });
+        saveCols();
+      }
+      TAB_IDS.forEach(tab => {
+        const firstCol = state.columns[tab][0]?.id;
+        state.lists[tab].forEach(l => {
+          if (!l.columnId) l.columnId = firstCol;
+        });
+      });
+    } catch (e) { console.warn('load', e); }
+    render();
+  }
+  function save() { storage.set('pro_lists', JSON.stringify(state.lists)); }
+  function saveCols() { storage.set('pro_columns', JSON.stringify(state.columns)); }
+  function saveDayMarks() { storage.set('pro_day_marks', JSON.stringify(state.dayMarks)); }
+  function saveRecurring() { storage.set('pro_recurring', JSON.stringify(state.recurring)); }
+  function saveRecurringZones() { storage.set('pro_recurring_zones', JSON.stringify(state.recurringZones)); }
+
+  // Conversion JJ/MM (UI) ↔ MM-DD (stockage)
+  function ddmmToStorage(s) {
+    if (!s) return '';
+    const m = s.trim().match(/^(\d{1,2})[\/\-\.](\d{1,2})$/);
+    if (!m) return '';
+    const dd = String(parseInt(m[1], 10)).padStart(2, '0');
+    const mm = String(parseInt(m[2], 10)).padStart(2, '0');
+    if (parseInt(dd, 10) < 1 || parseInt(dd, 10) > 31) return '';
+    if (parseInt(mm, 10) < 1 || parseInt(mm, 10) > 12) return '';
+    return `${mm}-${dd}`;
+  }
+  function storageToDdmm(s) {
+    if (!s) return '';
+    const m = s.match(/^(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    return `${m[2]}/${m[1]}`;
+  }
+
+  // ============ RÉCURRENCES ============
+  // Modèle d'une tâche récurrente :
+  // { id, title, emoji, color, freq: 'weekly'|'monthly'|'yearly'|'interval',
+  //   weekdays: [1..7] (lundi=1, dimanche=7) pour weekly
+  //   monthDay: 1..31 pour monthly
+  //   yearDate: 'MM-DD' pour yearly
+  //   intervalValue: int, intervalUnit: 'day'|'week'|'month' pour interval
+  //   startDate: 'YYYY-MM-DD' (référence pour interval, ou date d'origine)
+  //   lastDone: 'YYYY-MM-DD' (dernière fois marquée faite, optionnel)
+  // }
+
+  // Génère toutes les occurrences d'une tâche récurrente entre fromDate et toDate (inclus)
+  function getOccurrencesInRange(rec, fromDate, toDate) {
+    const occ = [];
+    const from = parseDate(typeof fromDate === 'string' ? fromDate : toIsoDate(fromDate));
+    const to = parseDate(typeof toDate === 'string' ? toDate : toIsoDate(toDate));
+    if (!from || !to) return occ;
+
+    if (rec.freq === 'weekly') {
+      const days = rec.weekdays || [];
+      if (days.length === 0) return occ;
+      const cursor = new Date(from);
+      while (cursor <= to) {
+        const wd = ((cursor.getDay() + 6) % 7) + 1; // 1=lundi..7=dimanche
+        if (days.includes(wd)) occ.push(toIsoDate(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    } else if (rec.freq === 'monthly') {
+      const day = rec.monthDay;
+      if (!day) return occ;
+      // Pour chaque mois entre from et to
+      const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+      while (cursor <= to) {
+        const lastDayOfMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+        const targetDay = Math.min(day, lastDayOfMonth);
+        const date = new Date(cursor.getFullYear(), cursor.getMonth(), targetDay);
+        if (date >= from && date <= to) occ.push(toIsoDate(date));
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    } else if (rec.freq === 'yearly') {
+      if (!rec.yearDate) return occ;
+      const [mm, dd] = rec.yearDate.split('-').map(Number);
+      for (let y = from.getFullYear(); y <= to.getFullYear(); y++) {
+        const lastDay = new Date(y, mm, 0).getDate();
+        const date = new Date(y, mm - 1, Math.min(dd, lastDay));
+        if (date >= from && date <= to) occ.push(toIsoDate(date));
+      }
+    } else if (rec.freq === 'interval') {
+      if (!rec.startDate || !rec.intervalValue) return occ;
+      const start = parseDate(rec.startDate);
+      const unit = rec.intervalUnit || 'day';
+      const step = parseInt(rec.intervalValue, 10);
+      if (!start || step <= 0) return occ;
+      const cursor = new Date(start);
+      // Avancer jusqu'à entrer dans la plage
+      while (cursor < from) {
+        if (unit === 'day') cursor.setDate(cursor.getDate() + step);
+        else if (unit === 'week') cursor.setDate(cursor.getDate() + step * 7);
+        else if (unit === 'month') cursor.setMonth(cursor.getMonth() + step);
+        else break;
+      }
+      while (cursor <= to) {
+        occ.push(toIsoDate(cursor));
+        if (unit === 'day') cursor.setDate(cursor.getDate() + step);
+        else if (unit === 'week') cursor.setDate(cursor.getDate() + step * 7);
+        else if (unit === 'month') cursor.setMonth(cursor.getMonth() + step);
+        else break;
+      }
+    }
+    return occ;
+  }
+
+  // Renvoie la prochaine occurrence d'une récurrence à partir de fromDate (incluse).
+  // Si la tâche a un doneHistory non vide, on cherche après la dernière entrée
+  function getNextOccurrence(rec, fromDate) {
+    const from = fromDate || today();
+    let searchFrom = from;
+    const lastDoneStr = (rec.doneHistory && rec.doneHistory.length > 0)
+      ? rec.doneHistory[rec.doneHistory.length - 1]
+      : rec.lastDone;
+    if (lastDoneStr) {
+      const last = parseDate(lastDoneStr);
+      if (last >= from) {
+        searchFrom = new Date(last);
+        searchFrom.setDate(searchFrom.getDate() + 1);
+      }
+    }
+    const limit = new Date(searchFrom);
+    limit.setFullYear(limit.getFullYear() + 3);
+    const occ = getOccurrencesInRange(rec, searchFrom, limit);
+    return occ.length > 0 ? occ[0] : null;
+  }
+
+  function toIsoDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function describeRecurrence(rec) {
+    if (rec.freq === 'weekly') {
+      const names = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+      const wd = (rec.weekdays || []).map(d => names[d-1]).join(', ');
+      return wd ? 'Hebdo : ' + wd : 'Hebdo';
+    }
+    if (rec.freq === 'monthly') return 'Le ' + (rec.monthDay || '?') + ' de chaque mois';
+    if (rec.freq === 'yearly') {
+      if (!rec.yearDate) return 'Annuel';
+      const [mm, dd] = rec.yearDate.split('-');
+      const months = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+      return `Chaque année le ${parseInt(dd,10)} ${months[parseInt(mm,10)-1]}`;
+    }
+    if (rec.freq === 'interval') {
+      const units = { day: 'jour(s)', week: 'semaine(s)', month: 'mois' };
+      return `Tous les ${rec.intervalValue || '?'} ${units[rec.intervalUnit] || ''}`;
+    }
+    return '';
+  }
+
+  function sortRecurringByNext() {
+    const t = today();
+    return [...state.recurring].map(r => ({
+      rec: r,
+      next: getNextOccurrence(r, t)
+    })).sort((a, b) => {
+      if (!a.next && !b.next) return 0;
+      if (!a.next) return 1;
+      if (!b.next) return -1;
+      return a.next.localeCompare(b.next);
+    });
+  }
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+  function parseDate(s) { if (!s) return null; const d = new Date(s); d.setHours(0,0,0,0); return d; }
+  function fmtDate(s) {
+    if (!s) return '';
+    const d = parseDate(s);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+  }
+  function escape(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function syncModalInputsToState() {
+    if (!state.editingList) return;
+    const t = document.getElementById('m-title');
+    const f = document.getElementById('m-final');
+    const i = document.getElementById('m-inter');
+    const c = document.getElementById('m-col');
+    if (t) state.editingList.title = t.value;
+    if (f) state.editingList.dueFinal = f.value;
+    if (i) state.editingList.dueIntermediate = i.value;
+    if (c) state.editingList.columnId = c.value;
+  }
+
+  function getNextDueDate(list) {
+    if (list.dueIntermediate) return parseDate(list.dueIntermediate);
+    if (list.dueFinal) return parseDate(list.dueFinal);
+    return null;
+  }
+  function isOverdue(list) {
+    const d = getNextDueDate(list);
+    if (!d) return false;
+    return d < today();
+  }
+  function sortLists(lists) {
+    return [...lists].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      const da = getNextDueDate(a);
+      const db = getNextDueDate(b);
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return da - db;
+    });
+  }
+  function getColor(id) { return COLORS.find(c => c.id === id) || COLORS[6]; }
+  function getDayMark(id) { return DAY_PALETTE.find(p => p.id === id); }
+
+  function getDuePill(list) {
+    const d = getNextDueDate(list);
+    if (!d) return '';
+    const diff = Math.round((d - today()) / 86400000);
+    let cls = 'due-pill';
+    if (diff < 0) cls += ' urgent';
+    else if (diff <= 7) cls += ' soon';
+    const label = list.dueIntermediate ? fmtDate(list.dueIntermediate) : fmtDate(list.dueFinal);
+    return `<span class="${cls}">${label}</span>`;
+  }
+
+  function renderTask(task, listId, depth, siblings, idx) {
+    const subCls = depth === 1 ? ' sub' : depth === 2 ? ' sub sub-2' : '';
+    const subs = (task.subs || []).map((s, i) => renderTask(s, listId, depth + 1, task.subs, i)).join('');
+    const canAddSub = depth < 2;
+    const isAddingHere = state.addingTaskTo === `${listId}::${task.id}`;
+    const isFirst = idx === 0;
+    const isLast = idx === siblings.length - 1;
+    const hlClass = task.highlighted ? ' highlighted' : '';
+    const hlBtnClass = task.highlighted ? 'highlight-btn is-on' : 'highlight-btn';
+    return `
+      <div class="todo-item${subCls}${hlClass}" data-task-id="${task.id}" data-task-depth="${depth}" data-task-list="${listId}">
+        <div class="drag-handle" data-drag-handle="${task.id}" title="Glisser pour réorganiser">⋮⋮</div>
+        <div class="check ${task.done ? 'done' : ''}" data-action="toggle" data-list="${listId}" data-task="${task.id}"></div>
+        <div class="task-text ${task.done ? 'done' : ''}">${escape(task.text)}</div>
+        <div class="task-controls">
+          <div class="arrow-stack">
+            <button class="icon-btn" data-action="move-task" data-list="${listId}" data-task="${task.id}" data-dir="up" ${isFirst?'disabled style="opacity:0.25"':''} title="Monter"><i class="ti ti-chevron-up" style="font-size:11px"></i></button>
+            <button class="icon-btn" data-action="move-task" data-list="${listId}" data-task="${task.id}" data-dir="down" ${isLast?'disabled style="opacity:0.25"':''} title="Descendre"><i class="ti ti-chevron-down" style="font-size:11px"></i></button>
+          </div>
+          <button class="${hlBtnClass}" data-action="toggle-hl-task" data-list="${listId}" data-task="${task.id}" title="Mettre en valeur"><i class="ti ti-highlight" style="font-size:12px"></i></button>
+          ${canAddSub ? `<button class="icon-btn" data-action="add-sub" data-list="${listId}" data-task="${task.id}" title="Sous-tâche"><i class="ti ti-plus" style="font-size:12px"></i></button>` : ''}
+          <button class="icon-btn" data-action="del-task" data-list="${listId}" data-task="${task.id}" title="Supprimer"><i class="ti ti-x" style="font-size:12px"></i></button>
+        </div>
+      </div>
+      ${isAddingHere ? `
+        <div class="add-task-row" style="padding-left: ${(depth+1) * 18}px">
+          <input type="text" id="new-task-input" placeholder="Sous-tâche..." />
+          <button class="icon-btn" data-action="confirm-task" data-list="${listId}" data-parent="${task.id}"><i class="ti ti-check"></i></button>
+          <button class="icon-btn" data-action="cancel-task"><i class="ti ti-x"></i></button>
+        </div>
+      ` : ''}
+      ${subs}
+    `;
+  }
+
+  function renderList(list) {
+    const c = getColor(list.color);
+    const tasks = list.tasks || [];
+    const tasksHtml = tasks.map((t, i) => renderTask(t, list.id, 0, tasks, i)).join('');
+    const isAddingTop = state.addingTaskTo === `${list.id}::ROOT`;
+    const overdue = isOverdue(list);
+    const overdueWhich = overdue
+      ? (list.dueIntermediate && parseDate(list.dueIntermediate) < today() ? 'inter' : 'final')
+      : null;
+    const pinIcon = list.pinned ? 'ti-pin-filled' : 'ti-pin';
+    const pinClass = list.pinned ? 'pin-btn is-pinned' : 'pin-btn';
+    const pinTitle = list.pinned ? 'Désépingler' : 'Épingler';
+    const hlClass = list.highlighted ? 'highlight-btn is-on' : 'highlight-btn';
+    const hlTitle = list.highlighted ? 'Retirer la mise en valeur' : 'Mettre en valeur';
+    return `
+      <div class="todo-card ${overdue ? 'overdue' : ''} ${list.highlighted ? 'highlighted' : ''}" draggable="true" data-list-drag="${list.id}">
+        <div class="todo-header" style="background: ${c.bg}; color: ${c.text};">
+          <span style="font-size:14px">${list.emoji || ''}</span>
+          <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${escape(list.title)}">${escape(list.title)}</span>
+          ${overdue ? `<span class="alert-badge" title="Échéance ${overdueWhich === 'inter' ? 'intermédiaire' : 'finale'} dépassée"><i class="ti ti-alert-triangle" style="font-size:10px"></i></span>` : ''}
+          ${getDuePill(list)}
+          <button class="${hlClass}" data-action="toggle-hl-list" data-list="${list.id}" title="${hlTitle}"><i class="ti ti-highlight" style="font-size:13px"></i></button>
+          <button class="icon-btn" data-action="edit-list" data-list="${list.id}" title="Modifier" style="color:${c.text}"><i class="ti ti-edit" style="font-size:13px"></i></button>
+          <button class="${pinClass}" data-action="pin-list" data-list="${list.id}" title="${pinTitle}"><i class="ti ${pinIcon}"></i></button>
+        </div>
+        <div class="todo-body">
+          ${tasksHtml || '<div style="font-size:12px; color:var(--color-text-tertiary); padding:3px 0">Aucune tâche</div>'}
+          ${isAddingTop ? `
+            <div class="add-task-row">
+              <input type="text" id="new-task-input" placeholder="Nouvelle tâche..." />
+              <button class="icon-btn" data-action="confirm-task" data-list="${list.id}" data-parent=""><i class="ti ti-check"></i></button>
+              <button class="icon-btn" data-action="cancel-task"><i class="ti ti-x"></i></button>
+            </div>
+          ` : `
+            <button class="add-btn" data-action="show-add-task" data-list="${list.id}" data-parent="" style="margin-top:6px">+ Ajouter une tâche</button>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderColumns() {
+    const cols = state.columns[state.tab];
+    const tabLists = state.lists[state.tab] || [];
+    const colCountClass = cols.length === 4 ? 'cols-4' : 'cols-3';
+    return `
+      <div class="col-wrap ${colCountClass}">
+        ${cols.map(col => {
+          const inCol = sortLists(tabLists.filter(l => l.columnId === col.id));
+          const isOver = state.dragOverCol === col.id;
+          return `
+            <div class="col ${isOver ? 'drag-over' : ''}" data-col-drop="${col.id}">
+              <div class="col-head">
+                <input class="col-title" data-action="rename-col" data-col="${col.id}" value="${escape(col.name)}" />
+                <span style="font-size: 11px; color: var(--color-text-tertiary)">${inCol.length}</span>
+              </div>
+              ${inCol.length === 0
+                ? `<div class="empty-col">Glisser une liste ici</div>`
+                : inCol.map(renderList).join('')}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function getDueOnDate(dateStr) {
+    const allLists = [];
+    TAB_IDS.forEach(t => {
+      (state.lists[t] || []).forEach(l => allLists.push({...l, _tab: t}));
+    });
+    const items = [];
+    allLists.forEach(l => {
+      if (l.dueIntermediate === dateStr) items.push({ list: l, type: 'intermédiaire', color: getColor(l.color).border });
+      if (l.dueFinal === dateStr) items.push({ list: l, type: 'finale', color: getColor(l.color).border });
+    });
+    // Récurrences tombant ce jour
+    const d = parseDate(dateStr);
+    if (d) {
+      state.recurring.forEach(rec => {
+        const occs = getOccurrencesInRange(rec, d, d);
+        if (occs.length > 0) {
+          items.push({
+            list: { title: rec.title, color: rec.color },
+            type: 'récurrence : ' + describeRecurrence(rec).toLowerCase(),
+            color: getColor(rec.color).border,
+            _tab: 'récurrent'
+          });
+        }
+      });
+    }
+    return items;
+  }
+
+  function renderCalendar() {
+    const t = today();
+    const months = [];
+    for (let i = 0; i < 3; i++) months.push(new Date(t.getFullYear(), t.getMonth() + i, 1));
+
+    const allLists = [];
+    TAB_IDS.forEach(t => { allLists.push(...(state.lists[t] || [])); });
+    const dueMap = {};
+    allLists.forEach(l => {
+      [l.dueIntermediate, l.dueFinal].forEach(d => {
+        if (d) {
+          if (!dueMap[d]) dueMap[d] = [];
+          dueMap[d].push({ color: getColor(l.color).border, kind: 'list' });
+        }
+      });
+    });
+
+    // Ajout des occurrences de récurrences dans la plage des 3 mois affichés
+    const firstMonthStart = new Date(months[0].getFullYear(), months[0].getMonth(), 1);
+    const lastMonthEnd = new Date(months[2].getFullYear(), months[2].getMonth() + 1, 0);
+    state.recurring.forEach(rec => {
+      const occs = getOccurrencesInRange(rec, firstMonthStart, lastMonthEnd);
+      occs.forEach(d => {
+        if (!dueMap[d]) dueMap[d] = [];
+        dueMap[d].push({ color: getColor(rec.color).border, kind: 'recurring' });
+      });
+    });
+
+    return months.map(m => {
+      const year = m.getFullYear();
+      const month = m.getMonth();
+      const monthName = m.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const firstDay = new Date(year, month, 1).getDay();
+      const offset = firstDay === 0 ? 6 : firstDay - 1;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const days = [];
+      for (let i = 0; i < offset; i++) days.push('<div></div>');
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dayDate = parseDate(dateStr);
+        const isToday = dayDate.getTime() === t.getTime();
+        const isPast = dayDate < t;
+        const dots = dueMap[dateStr] || [];
+        const mark = state.dayMarks[dateStr];
+        const markStyle = mark ? `background: ${getDayMark(mark)?.bg}; color: ${getDayMark(mark)?.text};` : '';
+        const cls = ['cal-day'];
+        if (isPast) cls.push('past');
+        if (isToday) cls.push('today');
+        if (dots.length) cls.push('has-due');
+        days.push(`
+          <div class="${cls.join(' ')}" style="${markStyle}" data-action="cal-click" data-date="${dateStr}">
+            <span>${d}</span>
+            ${dots.length ? `<div style="display:flex; gap:1px; align-items:center">${dots.slice(0,3).map(dot => `<div class="cal-dot${dot.kind === 'recurring' ? ' recurring' : ''}" style="background:${dot.color}"></div>`).join('')}</div>` : ''}
+          </div>
+        `);
+      }
+      return `
+        <div style="margin-bottom: 14px;">
+          <div style="font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: capitalize;">${monthName}</div>
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 2px;">
+            ${['L','M','M','J','V','S','D'].map(d => `<div style="text-align:center">${d}</div>`).join('')}
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+            ${days.join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderModal() {
+    if (!state.editingList) return '';
+    const l = state.editingList;
+    const cols = state.columns[state.tab];
+    const colId = l.columnId || cols[0]?.id;
+    return `
+      <div class="modal-bg" data-action="close-modal">
+        <div class="modal" data-action="modal-stop">
+          <div style="font-weight:500; font-size:15px; margin-bottom:8px">${l.id ? 'Modifier la liste' : 'Nouvelle liste'}</div>
+          <label>Titre</label>
+          <input type="text" id="m-title" value="${escape(l.title || '')}" />
+          <label>Colonne</label>
+          <select id="m-col">
+            ${cols.map(c => `<option value="${c.id}" ${c.id === colId ? 'selected' : ''}>${escape(c.name)}</option>`).join('')}
+          </select>
+          <label>Date intermédiaire</label>
+          <input type="date" id="m-inter" value="${l.dueIntermediate || ''}" />
+          <label>Date finale</label>
+          <input type="date" id="m-final" value="${l.dueFinal || ''}" />
+          <label>Couleur</label>
+          <div class="color-pick">
+            ${COLORS.map(c => `<div class="color-swatch ${l.color === c.id ? 'selected' : ''}" data-action="pick-color" data-color="${c.id}" style="background:${c.bg}; ${l.color === c.id ? 'border-color:'+c.border : ''}"></div>`).join('')}
+          </div>
+          <label>Emoji</label>
+          <div class="emoji-pick">
+            <button class="emoji-opt ${!l.emoji ? 'selected' : ''}" data-action="pick-emoji" data-emoji="">∅</button>
+            ${EMOJIS.map(e => `<button class="emoji-opt ${l.emoji === e ? 'selected' : ''}" data-action="pick-emoji" data-emoji="${e}">${e}</button>`).join('')}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end; align-items:center; flex-wrap: wrap">
+            ${l.id ? (state.confirmDelete
+              ? `<span style="font-size:12px; color:#791F1F; margin-right:auto">Confirmer ?</span>
+                 <button data-action="cancel-delete">Non</button>
+                 <button data-action="confirm-delete" class="delete-confirm">Oui, supprimer</button>`
+              : `<button data-action="ask-delete" style="color:#A32D2D; margin-right:auto"><i class="ti ti-trash" style="font-size:13px"></i> Supprimer</button>
+                 <button data-action="cancel-modal">Annuler</button>
+                 <button data-action="save-modal" style="background: var(--color-bg-info); border-color: var(--color-border-info); color: var(--color-text-info)">Enregistrer</button>`
+            ) : `
+              <button data-action="cancel-modal">Annuler</button>
+              <button data-action="save-modal" style="background: var(--color-bg-info); border-color: var(--color-border-info); color: var(--color-text-info)">Enregistrer</button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPopover() {
+    if (!state.openPopoverDate || !state.popoverPos) return '';
+    const d = state.openPopoverDate;
+    const current = state.dayMarks[d];
+    return `
+      <div class="cal-popover" style="left:${state.popoverPos.x}px; top:${state.popoverPos.y}px" data-action="popover-stop">
+        <div style="font-size: 12px; color: var(--color-text-secondary); font-weight: 500;">${fmtDate(d)} \u2014 marquer</div>
+        <div class="palette-row">
+          ${DAY_PALETTE.map(p => `
+            <div class="swatch" data-action="set-day-mark" data-date="${d}" data-mark="${p.id}" style="background:${p.bg}; ${current === p.id ? 'border-color:'+p.text : ''}" title="${p.label}"></div>
+          `).join('')}
+          <div class="swatch clear" data-action="set-day-mark" data-date="${d}" data-mark="" title="Aucun">×</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTooltip() {
+    if (!state.tooltip) return '';
+    const { x, y, items, mark, date } = state.tooltip;
+    const markInfo = mark ? getDayMark(mark) : null;
+    return `
+      <div class="cal-tooltip" style="left:${x}px; top:${y}px">
+        <div style="font-weight:500; margin-bottom:3px">${fmtDate(date)}</div>
+        ${markInfo ? `<div class="item"><div class="swatch-tip" style="background:${markInfo.bg}; border:1px solid ${markInfo.text}"></div><span style="color:${markInfo.text}; font-weight:500">${markInfo.label}</span></div>` : ''}
+        ${items.map(it => `
+          <div class="item">
+            <div class="swatch-tip" style="background:${it.color}"></div>
+            <span>${escape(it.list.title)} <span style="color:var(--color-text-tertiary)">(${it._tab || ''} \u00b7 ${it.type})</span></span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderRecurringView() {
+    const t = today();
+    const todayStr = toIsoDate(t);
+    const weekFromNow = new Date(t);
+    weekFromNow.setDate(weekFromNow.getDate() + 7);
+    const weekStr = toIsoDate(weekFromNow);
+
+    // Tri par prochaine occurrence à l'intérieur de chaque zone
+    function renderRecCard({rec, next}) {
+      const c = getColor(rec.color);
+      let cls = 'recurring-card';
+      let dateLabel = '—';
+      if (next) {
+        const d = new Date(next);
+        dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      if (next === todayStr) cls += ' today';
+      else if (next && next <= weekStr) cls += ' upcoming';
+      const canUndo = (rec.doneHistory && rec.doneHistory.length > 0);
+      return `
+        <div class="${cls}" style="${cls.includes('today') || cls.includes('upcoming') ? '' : 'border-left: 3px solid '+c.border+';'}">
+          <div class="recurring-card-emoji">${rec.emoji || '🔁'}</div>
+          <div class="recurring-card-title">
+            <div class="name" style="color: ${c.text}">${escape(rec.title)}</div>
+            <div class="meta">${escape(describeRecurrence(rec))}</div>
+          </div>
+          <span class="next-date">${dateLabel}</span>
+          ${next ? `<button class="rec-done-btn" data-action="rec-done" data-rec="${rec.id}" title="Marquer fait et repousser à la prochaine occurrence">
+            <i class="ti ti-check" style="font-size:12px"></i> Fait
+          </button>` : ''}
+          ${canUndo ? `<button class="icon-btn" data-action="rec-undo" data-rec="${rec.id}" title="Annuler le dernier 'Fait'">
+            <i class="ti ti-arrow-back-up" style="font-size:13px"></i>
+          </button>` : ''}
+          <button class="icon-btn" data-action="rec-edit" data-rec="${rec.id}" title="Modifier">
+            <i class="ti ti-edit" style="font-size:13px"></i>
+          </button>
+          <button class="icon-btn" data-action="rec-delete" data-rec="${rec.id}" title="Supprimer" style="color: #A32D2D">
+            <i class="ti ti-trash" style="font-size:13px"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="recurring-view">
+        <div class="recurring-view-header">
+          <i class="ti ti-repeat" style="font-size:18px; color: var(--color-text-secondary)"></i>
+          <h2>Tâches récurrentes</h2>
+          <span style="font-size:12px; color: var(--color-text-tertiary)">${state.recurring.length} au total</span>
+        </div>
+
+        ${state.recurringZones.map(zone => {
+          const itemsInZone = sortRecurringByNext().filter(({rec}) => (rec.zoneId || state.recurringZones[0].id) === zone.id);
+          return `
+            <div class="rec-zone">
+              <div class="rec-zone-head">
+                <input class="rec-zone-title" data-action="rename-rec-zone" data-zone="${zone.id}" value="${escape(zone.name)}" />
+                <span style="font-size:11px; color:var(--color-text-tertiary)">${itemsInZone.length}</span>
+                <button data-action="new-recurring-in" data-zone="${zone.id}" class="icon-btn" title="Ajouter dans cette zone">
+                  <i class="ti ti-plus" style="font-size:13px"></i>
+                </button>
+              </div>
+              ${itemsInZone.length === 0
+                ? `<div class="rec-zone-empty">Aucune récurrence dans cette zone.</div>`
+                : `<div class="recurring-list">${itemsInZone.map(renderRecCard).join('')}</div>`
+              }
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderRecurringModal() {
+    if (!state.editingRecurring) return '';
+    const r = state.editingRecurring;
+    const freq = r.freq || 'weekly';
+    const weekdays = r.weekdays || [];
+    const weekdayLabels = ['L','M','M','J','V','S','D'];
+
+    return `
+      <div class="modal-bg" data-action="close-rec-modal">
+        <div class="modal" data-action="modal-stop">
+          <div style="font-weight:500; font-size:15px; margin-bottom:8px">${r.id ? 'Modifier la récurrence' : 'Nouvelle récurrence'}</div>
+
+          <label>Titre</label>
+          <input type="text" id="rec-title" value="${escape(r.title || '')}" placeholder="${r.zoneId === state.recurringZones[0]?.id ? 'Anniversaire de Pierre' : 'Nom de la récurrence'}" />
+
+          <label>Zone</label>
+          <select id="rec-zone">
+            ${state.recurringZones.map(z => `<option value="${z.id}" ${(r.zoneId || state.recurringZones[0].id) === z.id ? 'selected' : ''}>${escape(z.name)}</option>`).join('')}
+          </select>
+
+          <label>Type de récurrence</label>
+          <div class="freq-pick">
+            <button class="freq-opt ${freq === 'weekly' ? 'selected' : ''}" data-action="rec-pick-freq" data-freq="weekly">Hebdo</button>
+            <button class="freq-opt ${freq === 'monthly' ? 'selected' : ''}" data-action="rec-pick-freq" data-freq="monthly">Mensuel</button>
+            <button class="freq-opt ${freq === 'yearly' ? 'selected' : ''}" data-action="rec-pick-freq" data-freq="yearly">Annuel</button>
+            <button class="freq-opt ${freq === 'interval' ? 'selected' : ''}" data-action="rec-pick-freq" data-freq="interval">Intervalle</button>
+          </div>
+
+          ${freq === 'weekly' ? `
+            <label>Jours de la semaine</label>
+            <div class="weekday-pick">
+              ${weekdayLabels.map((lab, i) => `
+                <button class="weekday-opt ${weekdays.includes(i+1) ? 'selected' : ''}" data-action="rec-toggle-weekday" data-day="${i+1}">${lab}</button>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${freq === 'monthly' ? `
+            <label>Jour du mois (1 à 31)</label>
+            <input type="number" id="rec-monthday" min="1" max="31" value="${r.monthDay || 1}" />
+          ` : ''}
+
+          ${freq === 'yearly' ? `
+            <label>Date (jour / mois)</label>
+            <input type="text" id="rec-yeardate" placeholder="JJ/MM (ex: 25/12)" value="${storageToDdmm(r.yearDate)}" />
+            <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:2px">Format: JJ/MM (ex: 25/12 pour le 25 décembre)</div>
+          ` : ''}
+
+          ${freq === 'interval' ? `
+            <label>Tous les...</label>
+            <div style="display:flex; gap:6px; align-items:center">
+              <input type="number" id="rec-interval-val" min="1" value="${r.intervalValue || 1}" style="width:80px" />
+              <select id="rec-interval-unit" style="flex:1">
+                <option value="day" ${r.intervalUnit === 'day' ? 'selected' : ''}>jour(s)</option>
+                <option value="week" ${r.intervalUnit === 'week' ? 'selected' : ''}>semaine(s)</option>
+                <option value="month" ${r.intervalUnit === 'month' ? 'selected' : ''}>mois</option>
+              </select>
+            </div>
+            <label>Date de départ</label>
+            <input type="date" id="rec-startdate" value="${r.startDate || toIsoDate(today())}" />
+          ` : ''}
+
+          <label>Couleur</label>
+          <div class="color-pick">
+            ${COLORS.map(c => `<div class="color-swatch ${r.color === c.id ? 'selected' : ''}" data-action="rec-pick-color" data-color="${c.id}" style="background:${c.bg}; ${r.color === c.id ? 'border-color:'+c.border : ''}"></div>`).join('')}
+          </div>
+
+          <label>Emoji</label>
+          <div class="emoji-pick">
+            <button class="emoji-opt ${!r.emoji ? 'selected' : ''}" data-action="rec-pick-emoji" data-emoji="">∅</button>
+            ${['🎂','🎉','🔔','💊','💧','💼','📞','✉️','🧹','🚿','🏋️','📅'].map(e => `<button class="emoji-opt ${r.emoji === e ? 'selected' : ''}" data-action="rec-pick-emoji" data-emoji="${e}">${e}</button>`).join('')}
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end">
+            <button data-action="cancel-rec-modal">Annuler</button>
+            <button data-action="save-rec-modal" style="background: var(--color-bg-info); border-color: var(--color-border-info); color: var(--color-text-info)">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============ DASHBOARD ============
+  // Regroupements de tabs par zone du dashboard
+  const DASH_ZONES = [
+    { id: 'petram', name: 'PETRAM', icon: 'ti-building',            tabs: ['PETRAM'],                                 accent: '#A32D2D' },
+    { id: 'her',    name: 'HER',    icon: 'ti-building-skyscraper', tabs: ['HER'],                                    accent: '#A32D2D' },
+    { id: 'patrim', name: 'CATT.CORP', icon: 'ti-circle-letter-c',    tabs: ['VCC', 'CATT.IMMO', 'CATT.INVEST'],        accent: '#6A5FC4' },
+    { id: 'perso',  name: 'GAAC & vie perso', icon: 'ti-leaf',      tabs: ['GAAC', 'NEST', 'REDAC'],                  accent: '#4D8019' }
+  ];
+
+  function listHasHighlightedTask(list) {
+    function walk(arr) {
+      for (const t of arr) {
+        if (t.highlighted) return true;
+        if (t.subs && walk(t.subs)) return true;
+      }
+      return false;
+    }
+    return walk(list.tasks || []);
+  }
+
+  // Une liste remonte au dashboard si :
+  // - elle est épinglée
+  // - elle a une échéance (intermédiaire ou finale) dans ≤ 7 jours OU passée
+  // - elle est elle-même surlignée
+  // - elle contient au moins une tâche surlignée
+  function listShouldShowInDashboard(list) {
+    if (list.pinned) return true;
+    if (list.highlighted) return true;
+    if (listHasHighlightedTask(list)) return true;
+    const t = today();
+    const sevenDays = new Date(t);
+    sevenDays.setDate(sevenDays.getDate() + 7);
+    const d = getNextDueDate(list);
+    if (d && d <= sevenDays) return true;
+    return false;
+  }
+
+  function renderDashboard() {
+    return `
+      <div class="dash-wrap">
+        ${DASH_ZONES.map(zone => {
+          // Récupérer toutes les listes des tabs de cette zone qui doivent remonter
+          const items = [];
+          zone.tabs.forEach(tabId => {
+            (state.lists[tabId] || []).forEach(l => {
+              if (listShouldShowInDashboard(l)) {
+                items.push({ list: l, tab: tabId });
+              }
+            });
+          });
+          // Tri : épinglées et urgentes en premier, puis par date
+          items.sort((a, b) => {
+            const ap = a.list.pinned ? 1 : 0;
+            const bp = b.list.pinned ? 1 : 0;
+            if (ap !== bp) return bp - ap;
+            const da = getNextDueDate(a.list);
+            const db = getNextDueDate(b.list);
+            if (!da && !db) return 0;
+            if (!da) return 1;
+            if (!db) return -1;
+            return da - db;
+          });
+          return `
+            <div class="dash-zone">
+              <div class="dash-zone-head" style="color: ${zone.accent}">
+                <i class="ti ${zone.icon}" style="font-size: 14px"></i>
+                <span>${escape(zone.name)}</span>
+                <span class="count">${items.length}</span>
+              </div>
+              ${items.length === 0
+                ? `<div class="dash-empty">Rien d'urgent</div>`
+                : `<div class="dash-items">${items.map(it => renderDashItem(it.list, it.tab)).join('')}</div>`
+              }
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderDashItem(list, tabId) {
+    const c = getColor(list.color);
+    const d = getNextDueDate(list);
+    let dueClass = '';
+    let dueLabel = '';
+    if (d) {
+      const diff = Math.round((d - today()) / 86400000);
+      dueLabel = fmtDate(list.dueIntermediate || list.dueFinal);
+      if (diff < 0) dueClass = 'urgent';
+      else if (diff <= 7) dueClass = 'soon';
+    }
+    const showTabChip = ['CATT.IMMO','CATT.INVEST','VCC','GAAC','NEST','REDAC'].includes(tabId);
+    const hlCls = list.highlighted ? ' highlighted' : '';
+    return `
+      <div class="dash-item${hlCls}" data-action="dash-open" data-tab="${tabId}" data-list-id="${list.id}" title="Simple clic : ouvrir l'onglet · Double-clic : surligner">
+        <div class="dash-item-marker" style="background: ${c.border}"></div>
+        ${list.pinned ? `<i class="ti ti-pin-filled" style="font-size:10px; color:#BA7517"></i>` : ''}
+        ${list.emoji ? `<span style="font-size:11px">${list.emoji}</span>` : ''}
+        <span class="dash-item-title">${escape(list.title)}</span>
+        ${showTabChip ? `<span class="dash-tab-chip">${escape(tabId)}</span>` : ''}
+        ${dueLabel ? `<span class="dash-item-due ${dueClass}">${dueLabel}</span>` : ''}
+      </div>
+    `;
+  }
+
+  function render() {
+    const html = `
+      ${renderDashboard()}
+
+      <div class="tab-bar">
+        ${(() => {
+          const seenGroups = [];
+          TABS.forEach(t => { if (!seenGroups.includes(t.group)) seenGroups.push(t.group); });
+          return seenGroups.map((g, gi) => `
+            ${gi > 0 ? '<div class="tab-group-sep"></div>' : ''}
+            <div class="tab-group">
+              ${TABS.filter(t => t.group === g).map(t => `
+                <button class="pro-tab ${state.tab === t.id && state.view === 'columns' ? t.activeClass : ''}" data-action="tab" data-tab="${t.id}">
+                  <i class="ti ${t.icon}" style="font-size:13px; vertical-align:-2px"></i> ${t.label}
+                </button>
+              `).join('')}
+            </div>
+          `).join('');
+        })()}
+        <div style="flex:1"></div>
+        <button class="recurring-btn ${state.view === 'recurring' ? 'active' : ''}" data-action="toggle-recurring" title="Tâches récurrentes">
+          <i class="ti ti-repeat"></i>
+        </button>
+        <button data-action="${state.view === 'recurring' ? 'new-recurring' : 'new-list'}">
+          <i class="ti ti-plus" style="font-size:13px"></i> ${state.view === 'recurring' ? 'Nouvelle récurrence' : 'Nouvelle liste'}
+        </button>
+      </div>
+
+      <div class="layout-main">
+        <div>
+          ${state.view === 'recurring' ? renderRecurringView() : renderColumns()}
+        </div>
+        <div style="position: sticky; top: 8px;" id="cal-wrap">
+          <div style="font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px;">
+            <i class="ti ti-calendar" style="font-size:14px; vertical-align:-2px"></i> Calendrier 3 mois
+          </div>
+          ${renderCalendar()}
+          <div style="font-size:11px; color:var(--color-text-tertiary); margin-top:8px; line-height:1.4">
+            Clic : marquer le jour. Survol : voir échéances.
+          </div>
+        </div>
+      </div>
+
+      ${renderModal()}
+      ${renderRecurringModal()}
+      ${renderPopover()}
+      ${renderTooltip()}
+    `;
+    document.getElementById('pro-app').innerHTML = html;
+    attach();
+  }
+
+  function attach() {
+    document.querySelectorAll('[data-action]').forEach(el => {
+      if (el.tagName === 'INPUT' && (el.classList.contains('col-title') || el.classList.contains('rec-zone-title'))) {
+        el.onchange = handleAction;
+        el.onblur = handleAction;
+      } else if (el.classList.contains('dash-item')) {
+        // Distinction simple-clic (ouvrir onglet) / double-clic (basculer surlignage)
+        // On retarde le simple-clic de 220ms pour pouvoir l'annuler si un double-clic survient
+        let clickTimer = null;
+        const targetTab = el.dataset.tab;
+        const targetListId = el.dataset.listId;
+        el.onclick = () => {
+          if (clickTimer) return;
+          clickTimer = setTimeout(() => {
+            clickTimer = null;
+            if (TAB_IDS.includes(targetTab)) {
+              state.tab = targetTab;
+              state.view = 'columns';
+              render();
+            }
+          }, 220);
+        };
+        el.ondblclick = () => {
+          if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+          if (window.getSelection) window.getSelection().removeAllRanges();
+          let found = null;
+          TAB_IDS.forEach(t => {
+            const f = (state.lists[t] || []).find(l => l.id === targetListId);
+            if (f) found = f;
+          });
+          if (found) { found.highlighted = !found.highlighted; save(); render(); }
+        };
+      } else {
+        el.onclick = handleAction;
+      }
+    });
+    document.querySelectorAll('[data-action="cal-click"]').forEach(el => {
+      el.onmouseenter = handleCalHover;
+      el.onmouseleave = () => { state.tooltip = null; renderTooltipOnly(); };
+    });
+    document.querySelectorAll('[data-list-drag]').forEach(el => {
+      // Empêcher le drag de la liste si l'utilisateur commence depuis une poignée de tâche
+      el.addEventListener('mousedown', (e) => {
+        if (e.target.closest('[data-drag-handle]') || e.target.closest('.todo-item')) {
+          el.draggable = false;
+          // Réactive le draggable au prochain mousedown ailleurs
+          const reset = () => { el.draggable = true; document.removeEventListener('mouseup', reset); };
+          document.addEventListener('mouseup', reset);
+        } else {
+          el.draggable = true;
+        }
+      });
+      el.ondragstart = (e) => {
+        if (!el.draggable) { e.preventDefault(); return; }
+        state.dragListId = el.dataset.listDrag;
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', el.dataset.listDrag); } catch(_) {}
+      };
+      el.ondragend = () => {
+        el.classList.remove('dragging');
+        state.dragListId = null;
+        state.dragOverCol = null;
+        document.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'));
+      };
+    });
+
+    // Drag and drop des tâches via la poignée
+    document.querySelectorAll('[data-drag-handle]').forEach(handle => {
+      handle.setAttribute('draggable', 'true');
+      handle.addEventListener('dragstart', (e) => {
+        const item = handle.closest('.todo-item');
+        if (!item) return;
+        state.dragTask = {
+          taskId: item.dataset.taskId,
+          listId: item.dataset.taskList,
+          depth: parseInt(item.dataset.taskDepth, 10)
+        };
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', state.dragTask.taskId); } catch(_) {}
+        // Empêche le drag de la carte parente
+        e.stopPropagation();
+      });
+      handle.addEventListener('dragend', () => {
+        document.querySelectorAll('.todo-item.dragging').forEach(el => el.classList.remove('dragging'));
+        document.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+        state.dragTask = null;
+      });
+    });
+
+    // Cible de drop : toutes les .todo-item de la même liste que la tâche draggée
+    document.querySelectorAll('.todo-item').forEach(target => {
+      target.addEventListener('dragover', (e) => {
+        if (!state.dragTask) return;
+        if (target.dataset.taskList !== state.dragTask.listId) return;
+        if (target.dataset.taskId === state.dragTask.taskId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        // Position relative dans la ligne pour décider : frère au-dessus, frère en-dessous, ou enfant
+        const r = target.getBoundingClientRect();
+        const y = e.clientY - r.top;
+        const x = e.clientX - r.left;
+        const targetDepth = parseInt(target.dataset.taskDepth, 10);
+        const isInLowerHalf = y > r.height / 2;
+        // Glisser vers la droite (au moins 30px de marge à droite de la poignée) → devient enfant, si autorisé
+        const canBecomeChild = targetDepth < 2 && x > 50;
+        // Nettoyage des indicateurs précédents
+        document.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+        const indicator = document.createElement('div');
+        if (canBecomeChild) {
+          indicator.className = 'drop-indicator as-child';
+          indicator.dataset.dropMode = 'child';
+          indicator.dataset.dropTaskId = target.dataset.taskId;
+          target.parentNode.insertBefore(indicator, target.nextSibling);
+        } else {
+          indicator.className = 'drop-indicator';
+          indicator.dataset.dropMode = isInLowerHalf ? 'after' : 'before';
+          indicator.dataset.dropTaskId = target.dataset.taskId;
+          if (isInLowerHalf) target.parentNode.insertBefore(indicator, target.nextSibling);
+          else target.parentNode.insertBefore(indicator, target);
+        }
+      });
+      target.addEventListener('drop', (e) => {
+        if (!state.dragTask) return;
+        if (target.dataset.taskList !== state.dragTask.listId) return;
+        e.preventDefault();
+        const indicator = document.querySelector('.drop-indicator');
+        if (!indicator) return;
+        const mode = indicator.dataset.dropMode;
+        const refTaskId = indicator.dataset.dropTaskId;
+        applyTaskMove(state.dragTask.listId, state.dragTask.taskId, refTaskId, mode);
+      });
+    });
+    document.querySelectorAll('[data-col-drop]').forEach(col => {
+      col.ondragover = (e) => {
+        if (!state.dragListId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (state.dragOverCol !== col.dataset.colDrop) {
+          document.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'));
+          col.classList.add('drag-over');
+          state.dragOverCol = col.dataset.colDrop;
+        }
+      };
+      col.ondragleave = (e) => {
+        if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+      };
+      col.ondrop = (e) => {
+        e.preventDefault();
+        const targetCol = col.dataset.colDrop;
+        if (!state.dragListId) return;
+        const list = state.lists[state.tab].find(l => l.id === state.dragListId);
+        if (list && list.columnId !== targetCol) {
+          list.columnId = targetCol;
+          save();
+        }
+        state.dragListId = null;
+        state.dragOverCol = null;
+        render();
+      };
+    });
+
+    if (state.editingList) {
+      const titleInput = document.getElementById('m-title');
+      if (titleInput && !titleInput.dataset.focused) {
+        setTimeout(() => titleInput.focus(), 50);
+        titleInput.dataset.focused = '1';
+      }
+    }
+    if (state.editingRecurring) {
+      const titleInput = document.getElementById('rec-title');
+      if (titleInput && !titleInput.dataset.focused) {
+        setTimeout(() => {
+          titleInput.focus();
+          // Curseur à la fin pour faciliter l'édition de "Anniversaire de "
+          const len = titleInput.value.length;
+          try { titleInput.setSelectionRange(len, len); } catch(_) {}
+        }, 50);
+        titleInput.dataset.focused = '1';
+      }
+    }
+    if (state.addingTaskTo) {
+      const inp = document.getElementById('new-task-input');
+      if (inp) {
+        setTimeout(() => inp.focus(), 50);
+        inp.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const parts = state.addingTaskTo.split('::');
+            const lid = parts[0];
+            const pid = parts[1] === 'ROOT' ? '' : parts[1];
+            const btn = document.querySelector(`[data-action="confirm-task"][data-list="${lid}"][data-parent="${pid}"]`);
+            if (btn) btn.click();
+          } else if (e.key === 'Escape') {
+            state.addingTaskTo = null;
+            render();
+          }
+        };
+      }
+    }
+  }
+
+  function renderTooltipOnly() {
+    const existing = document.querySelector('.cal-tooltip');
+    if (existing) existing.remove();
+    if (state.tooltip) {
+      const wrap = document.getElementById('pro-app');
+      const tip = document.createElement('div');
+      tip.innerHTML = renderTooltip();
+      while (tip.firstChild) wrap.appendChild(tip.firstChild);
+    }
+  }
+
+  function handleCalHover(e) {
+    const el = e.currentTarget;
+    const date = el.dataset.date;
+    const items = getDueOnDate(date).map(it => ({ ...it, _tab: it.list._tab }));
+    const mark = state.dayMarks[date];
+    if (items.length === 0 && !mark) { state.tooltip = null; renderTooltipOnly(); return; }
+    const wrap = document.getElementById('pro-app');
+    const wrapRect = wrap.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    state.tooltip = {
+      x: Math.max(8, r.left - wrapRect.left - 100),
+      y: r.top - wrapRect.top + r.height + 4,
+      items, mark, date
+    };
+    renderTooltipOnly();
+  }
+
+  function findTaskWithSiblings(tasks, id) {
+    for (let i = 0; i < tasks.length; i++) {
+      if (tasks[i].id === id) return { task: tasks[i], siblings: tasks, index: i };
+      if (tasks[i].subs) {
+        const f = findTaskWithSiblings(tasks[i].subs, id);
+        if (f) return f;
+      }
+    }
+    return null;
+  }
+
+  // Calcule la profondeur maximale d'une tâche (0 si pas de subs, sinon 1+max des subs)
+  function maxDepth(task) {
+    if (!task.subs || task.subs.length === 0) return 0;
+    return 1 + Math.max(...task.subs.map(maxDepth));
+  }
+
+  // Déplace une tâche dans une liste selon le mode : 'before', 'after' (frère de refTask), ou 'child' (enfant de refTask)
+  // Contrainte : profondeur max 2 (tâche → sous-tâche → sous-sous-tâche)
+  function applyTaskMove(listId, taskId, refTaskId, mode) {
+    if (taskId === refTaskId) return;
+    const list = state.lists[state.tab].find(l => l.id === listId);
+    if (!list) return;
+    const src = findTaskWithSiblings(list.tasks, taskId);
+    if (!src) return;
+
+    // Bloque l'auto-référence : interdire de déposer une tâche dans son propre sous-arbre
+    function isDescendant(node, id) {
+      if (!node.subs) return false;
+      for (const c of node.subs) {
+        if (c.id === id) return true;
+        if (isDescendant(c, id)) return true;
+      }
+      return false;
+    }
+    if (isDescendant(src.task, refTaskId)) {
+      console.warn('Drop annulé : auto-référence');
+      return;
+    }
+
+    // Retire la tâche de sa position actuelle
+    src.siblings.splice(src.index, 1);
+
+    // Localiser la cible APRÈS le retrait
+    const ref = findTaskWithSiblings(list.tasks, refTaskId);
+    if (!ref) {
+      // Cible disparue (cas tordu) : on remet la tâche à la fin de la liste racine
+      list.tasks.push(src.task);
+      save();
+      render();
+      return;
+    }
+
+    if (mode === 'child') {
+      // Devient enfant de refTask. Vérifier la contrainte de profondeur :
+      // refTask est à un certain niveau dans l'arbre, son enfant sera à niveau+1.
+      // La tâche déplacée peut elle-même avoir des subs : on calcule la profondeur effective.
+      // Niveau du parent cible = profondeur de refTask depuis la racine
+      const refDepth = getDepthFromRoot(list.tasks, refTaskId, 0);
+      const movedSubtreeDepth = maxDepth(src.task);
+      if (refDepth + 1 + movedSubtreeDepth > 2) {
+        // Trop profond : on annule en remettant à sa place et on prévient
+        src.siblings.splice(src.index, 0, src.task);
+        flashWarning('Profondeur maximale atteinte (3 niveaux). Déplacement annulé.');
+        render();
+        return;
+      }
+      ref.task.subs = ref.task.subs || [];
+      ref.task.subs.push(src.task);
+    } else {
+      // 'before' ou 'after' : on devient frère de refTask
+      // Contrainte : profondeur du conteneur cible + profondeur du sous-arbre déplacé <= 2
+      const refDepth = getDepthFromRoot(list.tasks, refTaskId, 0);
+      const movedSubtreeDepth = maxDepth(src.task);
+      if (refDepth + movedSubtreeDepth > 2) {
+        src.siblings.splice(src.index, 0, src.task);
+        flashWarning('Profondeur maximale atteinte. Déplacement annulé.');
+        render();
+        return;
+      }
+      const insertIdx = mode === 'before' ? ref.index : ref.index + 1;
+      ref.siblings.splice(insertIdx, 0, src.task);
+    }
+
+    save();
+    render();
+  }
+
+  function getDepthFromRoot(tasks, id, currentDepth) {
+    for (const t of tasks) {
+      if (t.id === id) return currentDepth;
+      if (t.subs) {
+        const d = getDepthFromRoot(t.subs, id, currentDepth + 1);
+        if (d >= 0) return d;
+      }
+    }
+    return -1;
+  }
+
+  function flashWarning(msg) {
+    const w = document.createElement('div');
+    w.textContent = msg;
+    w.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#FCEBEB; color:#791F1F; padding:8px 16px; border-radius:6px; font-size:13px; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.15)';
+    document.body.appendChild(w);
+    setTimeout(() => w.remove(), 2500);
+  }
+
+  function handleAction(e) {
+    const a = e.currentTarget.dataset.action;
+    if (a === 'modal-stop' || a === 'popover-stop') {
+      e.stopPropagation();
+      return;
+    }
+    if (a !== 'rename-col' && a !== 'rename-rec-zone') e.stopPropagation();
+
+    const listId = e.currentTarget.dataset.list;
+    const taskId = e.currentTarget.dataset.task;
+
+    if (a === 'tab') {
+      state.tab = e.currentTarget.dataset.tab;
+      state.view = 'columns';
+      state.openPopoverDate = null;
+      render();
+    } else if (a === 'rename-col') {
+      const colId = e.currentTarget.dataset.col;
+      const newName = e.currentTarget.value.trim();
+      const col = state.columns[state.tab].find(c => c.id === colId);
+      if (col && newName) { col.name = newName; saveCols(); }
+      else { e.currentTarget.value = col?.name || ''; }
+    } else if (a === 'new-list') {
+      const firstCol = state.columns[state.tab][0]?.id;
+      state.editingList = { title: '', color: 'blue', emoji: '', dueFinal: '', dueIntermediate: '', tasks: [], columnId: firstCol };
+      state.confirmDelete = false;
+      render();
+    } else if (a === 'edit-list') {
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      if (list) { state.editingList = JSON.parse(JSON.stringify(list)); state.confirmDelete = false; render(); }
+    } else if (a === 'pin-list') {
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      if (list) { list.pinned = !list.pinned; save(); render(); }
+    } else if (a === 'toggle-hl-list') {
+      // On cherche la liste dans tous les onglets (utile depuis le dashboard aussi)
+      let found = null;
+      TAB_IDS.forEach(t => {
+        const f = (state.lists[t] || []).find(l => l.id === listId);
+        if (f) found = f;
+      });
+      if (found) { found.highlighted = !found.highlighted; save(); render(); }
+    } else if (a === 'toggle-hl-task') {
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      if (!list) return;
+      const f = findTaskWithSiblings(list.tasks, taskId);
+      if (f) { f.task.highlighted = !f.task.highlighted; save(); render(); }
+    } else if (a === 'dash-open') {
+      const targetTab = e.currentTarget.dataset.tab;
+      if (TAB_IDS.includes(targetTab)) {
+        state.tab = targetTab;
+        state.view = 'columns';
+        render();
+      }
+    } else if (a === 'pick-color') {
+      syncModalInputsToState();
+      if (state.editingList) { state.editingList.color = e.currentTarget.dataset.color; render(); }
+    } else if (a === 'pick-emoji') {
+      syncModalInputsToState();
+      if (state.editingList) { state.editingList.emoji = e.currentTarget.dataset.emoji; render(); }
+    } else if (a === 'close-modal' || a === 'cancel-modal') {
+      state.editingList = null; state.confirmDelete = false; render();
+    } else if (a === 'save-modal') {
+      syncModalInputsToState();
+      const titleVal = (state.editingList.title || '').trim();
+      if (!titleVal) return;
+      const data = { ...state.editingList, title: titleVal };
+      if (data.id) {
+        const idx = state.lists[state.tab].findIndex(l => l.id === data.id);
+        if (idx >= 0) state.lists[state.tab][idx] = data;
+      } else {
+        data.id = uid(); data.tasks = []; data.pinned = false;
+        state.lists[state.tab].push(data);
+      }
+      state.editingList = null; state.confirmDelete = false;
+      save(); render();
+    } else if (a === 'ask-delete') {
+      state.confirmDelete = true; render();
+    } else if (a === 'cancel-delete') {
+      state.confirmDelete = false; render();
+    } else if (a === 'confirm-delete') {
+      if (!state.editingList?.id) return;
+      state.lists[state.tab] = state.lists[state.tab].filter(l => l.id !== state.editingList.id);
+      state.editingList = null; state.confirmDelete = false;
+      save(); render();
+    } else if (a === 'show-add-task') {
+      const parentId = e.currentTarget.dataset.parent;
+      state.addingTaskTo = `${listId}::${parentId || 'ROOT'}`;
+      render();
+    } else if (a === 'add-sub') {
+      state.addingTaskTo = `${listId}::${taskId}`;
+      render();
+    } else if (a === 'cancel-task') {
+      state.addingTaskTo = null; render();
+    } else if (a === 'confirm-task') {
+      const inp = document.getElementById('new-task-input');
+      const txt = inp ? inp.value.trim() : '';
+      if (!txt) return;
+      const parentId = e.currentTarget.dataset.parent;
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      if (list) {
+        list.tasks = list.tasks || [];
+        if (parentId) {
+          const found = findTaskWithSiblings(list.tasks, parentId);
+          if (found) {
+            found.task.subs = found.task.subs || [];
+            found.task.subs.push({ id: uid(), text: txt, done: false, subs: [] });
+          }
+        } else {
+          list.tasks.push({ id: uid(), text: txt, done: false, subs: [] });
+        }
+        save();
+      }
+      state.addingTaskTo = null; render();
+    } else if (a === 'toggle') {
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      const found = findTaskWithSiblings(list.tasks, taskId);
+      if (found) { found.task.done = !found.task.done; save(); render(); }
+    } else if (a === 'move-task') {
+      const dir = e.currentTarget.dataset.dir;
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      const found = findTaskWithSiblings(list.tasks, taskId);
+      if (found) {
+        const arr = found.siblings;
+        const i = found.index;
+        const j = dir === 'up' ? i - 1 : i + 1;
+        if (j >= 0 && j < arr.length) {
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          save(); render();
+        }
+      }
+    } else if (a === 'del-task') {
+      const list = state.lists[state.tab].find(l => l.id === listId);
+      function removeFrom(arr) {
+        const idx = arr.findIndex(t => t.id === taskId);
+        if (idx >= 0) { arr.splice(idx, 1); return true; }
+        for (const t of arr) if (t.subs && removeFrom(t.subs)) return true;
+        return false;
+      }
+      removeFrom(list.tasks);
+      save(); render();
+    } else if (a === 'cal-click') {
+      const date = e.currentTarget.dataset.date;
+      const wrap = document.getElementById('pro-app');
+      const wrapRect = wrap.getBoundingClientRect();
+      const r = e.currentTarget.getBoundingClientRect();
+      state.openPopoverDate = date;
+      state.popoverPos = {
+        x: Math.max(8, Math.min(r.left - wrapRect.left - 50, wrapRect.width - 180)),
+        y: r.top - wrapRect.top + r.height + 4
+      };
+      state.tooltip = null; render();
+    } else if (a === 'set-day-mark') {
+      const date = e.currentTarget.dataset.date;
+      const mark = e.currentTarget.dataset.mark;
+      if (mark) state.dayMarks[date] = mark;
+      else delete state.dayMarks[date];
+      state.openPopoverDate = null;
+      saveDayMarks(); render();
+    } else if (a === 'toggle-recurring') {
+      state.view = state.view === 'recurring' ? 'columns' : 'recurring';
+      render();
+    } else if (a === 'new-recurring') {
+      const firstZoneId = state.recurringZones[0]?.id;
+      state.editingRecurring = {
+        title: '', emoji: '', color: 'gray',
+        freq: 'weekly', weekdays: [1],
+        monthDay: 1, yearDate: '', intervalValue: 1, intervalUnit: 'week',
+        startDate: toIsoDate(today()),
+        zoneId: firstZoneId,
+        doneHistory: []
+      };
+      render();
+    } else if (a === 'new-recurring-in') {
+      const zoneId = e.currentTarget.dataset.zone;
+      const isAnnivZone = state.recurringZones[0]?.id === zoneId;
+      state.editingRecurring = {
+        title: isAnnivZone ? 'Anniversaire de ' : '',
+        emoji: isAnnivZone ? '🎂' : '',
+        color: 'gray',
+        freq: isAnnivZone ? 'yearly' : 'weekly',
+        weekdays: [1],
+        monthDay: 1, yearDate: '', intervalValue: 1, intervalUnit: 'week',
+        startDate: toIsoDate(today()),
+        zoneId: zoneId,
+        doneHistory: []
+      };
+      render();
+    } else if (a === 'rename-rec-zone') {
+      const zoneId = e.currentTarget.dataset.zone;
+      const newName = e.currentTarget.value.trim();
+      const zone = state.recurringZones.find(z => z.id === zoneId);
+      if (zone && newName) { zone.name = newName; saveRecurringZones(); }
+      else { e.currentTarget.value = zone?.name || ''; }
+    } else if (a === 'rec-edit') {
+      const recId = e.currentTarget.dataset.rec;
+      const rec = state.recurring.find(r => r.id === recId);
+      if (rec) {
+        state.editingRecurring = JSON.parse(JSON.stringify(rec));
+        render();
+      }
+    } else if (a === 'rec-done') {
+      const recId = e.currentTarget.dataset.rec;
+      const rec = state.recurring.find(r => r.id === recId);
+      if (rec) {
+        const next = getNextOccurrence(rec, today());
+        if (next) {
+          rec.doneHistory = rec.doneHistory || [];
+          rec.doneHistory.push(next);
+        }
+        saveRecurring();
+        render();
+      }
+    } else if (a === 'rec-undo') {
+      const recId = e.currentTarget.dataset.rec;
+      const rec = state.recurring.find(r => r.id === recId);
+      if (rec && rec.doneHistory && rec.doneHistory.length > 0) {
+        rec.doneHistory.pop();
+        saveRecurring();
+        render();
+      }
+    } else if (a === 'rec-delete') {
+      const recId = e.currentTarget.dataset.rec;
+      const rec = state.recurring.find(r => r.id === recId);
+      if (rec && confirmDelete(`Supprimer la récurrence "${rec.title}" ?`)) {
+        state.recurring = state.recurring.filter(r => r.id !== recId);
+        saveRecurring();
+        render();
+      }
+    } else if (a === 'close-rec-modal' || a === 'cancel-rec-modal') {
+      state.editingRecurring = null;
+      render();
+    } else if (a === 'rec-pick-freq') {
+      syncRecModalInputsToState();
+      state.editingRecurring.freq = e.currentTarget.dataset.freq;
+      render();
+    } else if (a === 'rec-toggle-weekday') {
+      syncRecModalInputsToState();
+      const d = parseInt(e.currentTarget.dataset.day, 10);
+      const wd = state.editingRecurring.weekdays || [];
+      if (wd.includes(d)) state.editingRecurring.weekdays = wd.filter(x => x !== d);
+      else state.editingRecurring.weekdays = [...wd, d].sort();
+      render();
+    } else if (a === 'rec-pick-color') {
+      syncRecModalInputsToState();
+      state.editingRecurring.color = e.currentTarget.dataset.color;
+      render();
+    } else if (a === 'rec-pick-emoji') {
+      syncRecModalInputsToState();
+      state.editingRecurring.emoji = e.currentTarget.dataset.emoji;
+      render();
+    } else if (a === 'save-rec-modal') {
+      syncRecModalInputsToState();
+      const r = state.editingRecurring;
+      if (!r.title || !r.title.trim()) return;
+      // Validation minimale selon la fréquence
+      if (r.freq === 'weekly' && (!r.weekdays || r.weekdays.length === 0)) {
+        flashWarning('Choisis au moins un jour de la semaine.');
+        return;
+      }
+      if (r.freq === 'yearly' && !/^\d{2}-\d{2}$/.test(r.yearDate || '')) {
+        flashWarning('Date annuelle requise au format JJ/MM.');
+        return;
+      }
+      r.title = r.title.trim();
+      if (r.id) {
+        const idx = state.recurring.findIndex(x => x.id === r.id);
+        if (idx >= 0) state.recurring[idx] = r;
+      } else {
+        r.id = 'rec-' + uid();
+        state.recurring.push(r);
+      }
+      state.editingRecurring = null;
+      saveRecurring();
+      render();
+    }
+  }
+
+  function syncRecModalInputsToState() {
+    if (!state.editingRecurring) return;
+    const r = state.editingRecurring;
+    const title = document.getElementById('rec-title');
+    if (title) r.title = title.value;
+    const zone = document.getElementById('rec-zone');
+    if (zone) r.zoneId = zone.value;
+    const md = document.getElementById('rec-monthday');
+    if (md) r.monthDay = parseInt(md.value, 10) || 1;
+    const yd = document.getElementById('rec-yeardate');
+    if (yd) {
+      const converted = ddmmToStorage(yd.value);
+      // Si la saisie est invalide, on garde l'ancienne valeur pour éviter une perte
+      if (converted) r.yearDate = converted;
+      else if (yd.value.trim() === '') r.yearDate = '';
+    }
+    const iv = document.getElementById('rec-interval-val');
+    if (iv) r.intervalValue = parseInt(iv.value, 10) || 1;
+    const iu = document.getElementById('rec-interval-unit');
+    if (iu) r.intervalUnit = iu.value;
+    const sd = document.getElementById('rec-startdate');
+    if (sd) r.startDate = sd.value;
+  }
+
+  function confirmDelete(msg) {
+    // Confirmation simple via prompt natif (acceptable ici car action ponctuelle)
+    return window.confirm(msg);
+  }
+
+  document.addEventListener('click', (e) => {
+    if (state.openPopoverDate && !e.target.closest('.cal-popover') && !e.target.closest('[data-action="cal-click"]')) {
+      state.openPopoverDate = null; render();
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
