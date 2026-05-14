@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Marcus</title>
 <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.20.0/dist/tabler-icons.min.css" rel="stylesheet">
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --color-bg-primary: #FFFFFF;
@@ -582,6 +584,123 @@
   }
   .reset-btn:hover { color: #A32D2D; }
 
+  /* Écran de connexion Google */
+  .auth-screen {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  .auth-screen h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--color-text-primary);
+  }
+  .auth-screen p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    max-width: 480px;
+    line-height: 1.6;
+    margin: 0.5rem 0;
+  }
+  .auth-screen .signin-btn {
+    background: #FFFFFF;
+    color: #3C4043;
+    border: 1px solid #DADCE0;
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 1.5rem;
+    transition: box-shadow 0.15s;
+  }
+  .auth-screen .signin-btn:hover {
+    box-shadow: 0 1px 3px rgba(60,64,67,0.3);
+  }
+  .auth-screen .signin-btn img {
+    width: 18px;
+    height: 18px;
+  }
+  .auth-screen .error {
+    color: #A32D2D;
+    background: #FCEBEB;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 1rem;
+    font-size: 13px;
+    max-width: 480px;
+  }
+  .auth-screen .small {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    margin-top: 1rem;
+  }
+
+  /* Indicateur de statut sync */
+  .sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    transition: all 0.2s;
+  }
+  .sync-indicator.idle {
+    background: #EAF3DE;
+    color: #27500A;
+  }
+  .sync-indicator.saving {
+    background: #FAEEDA;
+    color: #633806;
+  }
+  .sync-indicator.error {
+    background: #FCEBEB;
+    color: #791F1F;
+  }
+  .sync-indicator i {
+    font-size: 11px;
+  }
+  .sync-indicator.saving i {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-left: 8px;
+    padding: 3px 8px;
+    background: var(--color-bg-secondary);
+    border-radius: 12px;
+  }
+  .user-chip img {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+  }
+  .user-chip .signout {
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    margin-left: 4px;
+  }
+  .user-chip .signout:hover { color: #A32D2D; }
+
   /* Bouton récurrent : rond gris, isolé */
   .recurring-btn {
     width: 34px;
@@ -786,14 +905,17 @@
   <h1>
     <i class="ti ti-sparkles" style="font-size:20px; vertical-align:-3px"></i>
     Marcus
-    <button class="reset-btn" onclick="if(confirm('Effacer toutes les données ? Cette action est irréversible.')){localStorage.clear();location.reload();}" style="float:right; font-size:11px">
+    <span id="sync-indicator-slot"></span>
+    <span id="user-chip-slot" style="float:right; font-size:12px"></span>
+    <button id="reset-btn" class="reset-btn" style="float:right; font-size:11px; display:none">
       <i class="ti ti-trash" style="font-size:11px"></i> Réinitialiser
     </button>
   </h1>
 
   <div id="pro-app" style="position: relative;">
-    <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
-      Chargement...
+    <div id="auth-screen" class="auth-screen">
+      <i class="ti ti-loader-2" style="font-size: 28px; color: var(--color-text-secondary); animation: spin 1s linear infinite"></i>
+      <p style="margin-top: 1rem">Initialisation...</p>
     </div>
   </div>
 </div>
@@ -820,17 +942,72 @@
   ];
   const EMOJIS = ['📋', '⚡', '🎯', '📊', '🔍', '💡', '⚙️', '📞', '✉️', '🚀', '🔥', '⭐'];
 
-  // Storage adapter (localStorage in browser)
+  // ============ CONFIGURATION DRIVE ============
+  const CLIENT_ID = '264100909833-cq4fkln2l9s50g3km9nsioe6or0bk34r.apps.googleusercontent.com';
+  const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  const FOLDER_NAME = 'Marcus';
+  const DATA_FILE_NAME = 'donnees.json';
+
+  // État de l'auth
+  let gisInited = false;
+  let gapiInited = false;
+  let tokenClient = null;
+  let accessToken = null;
+  let userInfo = null; // { email, name, picture }
+  let folderId = null;
+  let dataFileId = null;
+
+  // ============ STORAGE : cache mémoire + sync Drive ============
+  // Toutes les données sont conservées dans un objet en mémoire, sérialisé en un
+  // unique JSON poussé sur Drive. Le sauvegarde se fait en débouncé (1s d'inactivité).
+  let memoryStore = {};
+  let saveTimer = null;
+  let saveInFlight = false;
+  let saveQueued = false;
+  let lastSaveError = null;
+
+  function setSyncStatus(status, label) {
+    const slot = document.getElementById('sync-indicator-slot');
+    if (!slot) return;
+    if (!status) { slot.innerHTML = ''; return; }
+    const icons = { idle: 'ti-cloud-check', saving: 'ti-loader-2', error: 'ti-cloud-off' };
+    slot.innerHTML = `<span class="sync-indicator ${status}"><i class="ti ${icons[status]}"></i>${label || ''}</span>`;
+  }
+
   const storage = {
     get: (k) => {
-      try { const v = localStorage.getItem(k); return v ? { value: v } : null; }
-      catch(e) { return null; }
+      const v = memoryStore[k];
+      return (v !== undefined) ? { value: v } : null;
     },
     set: (k, v) => {
-      try { localStorage.setItem(k, v); return true; }
-      catch(e) { return false; }
+      memoryStore[k] = v;
+      scheduleSave();
+      return true;
     }
   };
+
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    setSyncStatus('saving', 'enregistrement...');
+    saveTimer = setTimeout(doSave, 1000);
+  }
+
+  async function doSave() {
+    if (saveInFlight) { saveQueued = true; return; }
+    saveInFlight = true;
+    try {
+      await driveWriteData(memoryStore);
+      lastSaveError = null;
+      setSyncStatus('idle', 'à jour');
+    } catch (e) {
+      console.error('Erreur de sauvegarde Drive', e);
+      lastSaveError = e;
+      setSyncStatus('error', 'erreur sync');
+    } finally {
+      saveInFlight = false;
+      if (saveQueued) { saveQueued = false; scheduleSave(); }
+    }
+  }
 
   // Configuration centrale des onglets
   const TABS = [
@@ -2683,7 +2860,259 @@
     }
   });
 
-  load();
+  // ============ FONCTIONS DRIVE ============
+
+  async function driveFindOrCreateFolder() {
+    // Cherche un dossier nommé "Marcus" à la racine (non corbeillé)
+    const q = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list folder failed: ' + res.status);
+    const data = await res.json();
+    if (data.files && data.files.length > 0) return data.files[0].id;
+    // Création du dossier
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' })
+    });
+    if (!createRes.ok) throw new Error('Drive create folder failed: ' + createRes.status);
+    const created = await createRes.json();
+    return created.id;
+  }
+
+  async function driveFindDataFile(parentId) {
+    const q = encodeURIComponent(`name='${DATA_FILE_NAME}' and '${parentId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list file failed: ' + res.status);
+    const data = await res.json();
+    return (data.files && data.files.length > 0) ? data.files[0] : null;
+  }
+
+  async function driveReadData() {
+    // Si pas de fichier connu, on retourne un store vide (seed sera injecté par load())
+    if (!dataFileId) return {};
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${dataFileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) {
+      if (res.status === 404) { dataFileId = null; return {}; }
+      throw new Error('Drive read failed: ' + res.status);
+    }
+    try {
+      const text = await res.text();
+      return text ? JSON.parse(text) : {};
+    } catch (e) {
+      console.warn('Fichier donnees.json corrompu, on repart vierge', e);
+      return {};
+    }
+  }
+
+  async function driveWriteData(obj) {
+    if (!accessToken) throw new Error('Not authenticated');
+    if (!folderId) folderId = await driveFindOrCreateFolder();
+    const content = JSON.stringify(obj, null, 2);
+    const metadata = { name: DATA_FILE_NAME, mimeType: 'application/json' };
+    if (!dataFileId) {
+      // Création
+      metadata.parents = [folderId];
+      const boundary = '-------marcus_' + Math.random().toString(36).slice(2);
+      const body =
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+        JSON.stringify(metadata) +
+        `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
+        content +
+        `\r\n--${boundary}--`;
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'multipart/related; boundary=' + boundary
+        },
+        body
+      });
+      if (!res.ok) throw new Error('Drive create file failed: ' + res.status);
+      const data = await res.json();
+      dataFileId = data.id;
+    } else {
+      // Mise à jour
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${dataFileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: content
+      });
+      if (!res.ok) throw new Error('Drive update file failed: ' + res.status);
+    }
+  }
+
+  async function driveDeleteDataFile() {
+    if (!dataFileId) return;
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${dataFileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok && res.status !== 404) throw new Error('Drive delete failed: ' + res.status);
+    dataFileId = null;
+  }
+
+  async function fetchUserInfo() {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) return null;
+    return res.json(); // { email, name, picture, ... }
+  }
+
+  // ============ INIT OAUTH (GIS) ============
+
+  function showAuthScreen(errorMsg) {
+    const app = document.getElementById('pro-app');
+    app.innerHTML = `
+      <div class="auth-screen">
+        <i class="ti ti-sparkles" style="font-size: 36px; color: #BA7517"></i>
+        <h2>Bienvenue dans Marcus</h2>
+        <p>Marcus stocke vos données dans votre Google Drive personnel,
+        dans un dossier <strong>Marcus/</strong> que vous pouvez consulter à tout moment.</p>
+        <p>Connectez-vous avec le compte Google que vous voulez utiliser pour synchroniser vos activités sur tous vos appareils.</p>
+        <button class="signin-btn" id="signin-btn">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+          Se connecter avec Google
+        </button>
+        ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+        <p class="small">⚠️ Au premier accès, Google vous montre un avertissement « Application non vérifiée ». C'est normal : Marcus est en mode test pour un usage personnel. Cliquez sur « Paramètres avancés » puis « Continuer ».</p>
+      </div>
+    `;
+    document.getElementById('signin-btn').onclick = () => {
+      if (!tokenClient) {
+        showAuthScreen('Initialisation en cours, réessayez dans 2 secondes.');
+        return;
+      }
+      tokenClient.requestAccessToken();
+    };
+  }
+
+  function initGapi() {
+    gapi.load('client', async () => {
+      try {
+        await gapi.client.init({});
+        gapiInited = true;
+        maybeStartApp();
+      } catch (e) {
+        console.error('gapi init error', e);
+      }
+    });
+  }
+
+  function initGis() {
+    if (typeof google === 'undefined' || !google.accounts) {
+      // Le script n'est pas encore chargé : on réessaie un peu plus tard
+      setTimeout(initGis, 200);
+      return;
+    }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES + ' https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+      callback: async (resp) => {
+        if (resp.error) {
+          showAuthScreen('Erreur de connexion : ' + resp.error);
+          return;
+        }
+        accessToken = resp.access_token;
+        await onAuthenticated();
+      }
+    });
+    gisInited = true;
+    maybeStartApp();
+  }
+
+  function maybeStartApp() {
+    if (!gapiInited || !gisInited) return;
+    // Tout est prêt : afficher l'écran de login
+    showAuthScreen(null);
+  }
+
+  async function onAuthenticated() {
+    try {
+      // Récupérer les infos utilisateur pour affichage
+      userInfo = await fetchUserInfo();
+      // Trouver ou créer le dossier Marcus
+      folderId = await driveFindOrCreateFolder();
+      // Chercher le fichier de données
+      const f = await driveFindDataFile(folderId);
+      if (f) {
+        dataFileId = f.id;
+        memoryStore = await driveReadData();
+      } else {
+        memoryStore = {};
+      }
+      // Afficher le user chip et le bouton réinitialiser dans le header
+      updateHeader();
+      // Lancer l'app
+      load();
+      setSyncStatus('idle', 'à jour');
+    } catch (e) {
+      console.error('Erreur post-auth', e);
+      showAuthScreen('Erreur lors du chargement : ' + e.message);
+    }
+  }
+
+  function updateHeader() {
+    const chipSlot = document.getElementById('user-chip-slot');
+    if (chipSlot && userInfo) {
+      chipSlot.innerHTML = `
+        <span class="user-chip">
+          ${userInfo.picture ? `<img src="${userInfo.picture}" alt="">` : '<i class="ti ti-user"></i>'}
+          ${escape(userInfo.email || '')}
+          <span class="signout" id="signout-link" title="Se déconnecter"><i class="ti ti-logout" style="font-size:13px"></i></span>
+        </span>
+      `;
+      const so = document.getElementById('signout-link');
+      if (so) so.onclick = signOut;
+    }
+    const resetBtn = document.getElementById('reset-btn');
+    if (resetBtn) {
+      resetBtn.style.display = '';
+      resetBtn.onclick = async () => {
+        if (!confirm('Effacer toutes les données Marcus de votre Drive et repartir des données pré-saisies ? Cette action est irréversible.')) return;
+        try {
+          await driveDeleteDataFile();
+          memoryStore = {};
+          location.reload();
+        } catch (e) {
+          alert('Erreur lors de la suppression : ' + e.message);
+        }
+      };
+    }
+  }
+
+  function signOut() {
+    if (accessToken && google?.accounts?.oauth2) {
+      google.accounts.oauth2.revoke(accessToken, () => {});
+    }
+    accessToken = null;
+    userInfo = null;
+    folderId = null;
+    dataFileId = null;
+    memoryStore = {};
+    location.reload();
+  }
+
+  // Démarrage : on attend que gapi et gis soient chargés
+  function bootstrap() {
+    if (typeof gapi !== 'undefined') initGapi();
+    else setTimeout(bootstrap, 200);
+    initGis();
+  }
+  bootstrap();
 })();
 </script>
 </body>
