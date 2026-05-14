@@ -3241,7 +3241,45 @@
     return null;
   }
 
+  function applyAddTask(params) {
+    if (!params.listTitle) return { ok: false, reason: 'Paramètre listTitle manquant' };
+    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
+    if (!target) {
+      return {
+        ok: false,
+        reason: `Aucune liste trouvée avec le titre "${params.listTitle}"${params.tab ? ' dans l\'onglet ' + params.tab : ''}. Astuce : pour CRÉER une nouvelle liste, l'action doit être "create_list", pas "add_task".`
+      };
+    }
+    target.list.tasks = target.list.tasks || [];
+    target.list.tasks.push({ id: uid(), text: params.text || 'Tâche', done: false, subs: [] });
+    return { ok: true };
+  }
+
+  function applyCompleteTask(params) {
+    if (!params.listTitle) return { ok: false, reason: 'Paramètre listTitle manquant' };
+    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
+    if (!target) return { ok: false, reason: `Aucune liste trouvée avec le titre "${params.listTitle}"` };
+    const wanted = (params.taskText || '').toLowerCase();
+    if (!wanted) return { ok: false, reason: 'Paramètre taskText manquant' };
+    let found = false;
+    function walk(arr) {
+      for (const t of arr) {
+        if (t.text.toLowerCase() === wanted || t.text.toLowerCase().includes(wanted)) {
+          t.done = true;
+          found = true;
+          return true;
+        }
+        if (t.subs && walk(t.subs)) return true;
+      }
+      return false;
+    }
+    walk(target.list.tasks || []);
+    if (!found) return { ok: false, reason: `Aucune tâche trouvée correspondant à "${params.taskText}" dans la liste "${params.listTitle}"` };
+    return { ok: true };
+  }
+
   function applyCreateList(params) {
+    if (!params.title) return { ok: false, reason: 'Paramètre title manquant' };
     const tab = TAB_IDS.includes(params.tab) ? params.tab : 'PETRAM';
     const cols = state.columns[tab] || [];
     const columnId = (params.columnId && cols.find(c => c.id === params.columnId))
@@ -3250,7 +3288,7 @@
     const list = {
       id: 'cl-' + uid(),
       columnId,
-      title: params.title || 'Sans titre',
+      title: params.title,
       color: params.color || 'blue',
       emoji: params.emoji || '',
       pinned: !!params.pinned,
@@ -3263,39 +3301,15 @@
     };
     state.lists[tab] = state.lists[tab] || [];
     state.lists[tab].push(list);
-    return true;
-  }
-
-  function applyAddTask(params) {
-    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
-    if (!target) return false;
-    target.list.tasks = target.list.tasks || [];
-    target.list.tasks.push({ id: uid(), text: params.text || 'Tâche', done: false, subs: [] });
-    return true;
-  }
-
-  function applyCompleteTask(params) {
-    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
-    if (!target) return false;
-    const wanted = (params.taskText || '').toLowerCase();
-    function walk(arr) {
-      for (const t of arr) {
-        if (t.text.toLowerCase() === wanted || t.text.toLowerCase().includes(wanted)) {
-          t.done = true;
-          return true;
-        }
-        if (t.subs && walk(t.subs)) return true;
-      }
-      return false;
-    }
-    return walk(target.list.tasks || []);
+    return { ok: true };
   }
 
   function applyCreateRecurring(params) {
+    if (!params.title) return { ok: false, reason: 'Paramètre title manquant' };
     const firstZoneId = state.recurringZones[0]?.id;
     const rec = {
       id: 'rec-' + uid(),
-      title: params.title || 'Sans titre',
+      title: params.title,
       emoji: params.emoji || '🔁',
       color: params.color || 'gray',
       freq: params.freq || 'weekly',
@@ -3309,7 +3323,7 @@
       doneHistory: []
     };
     state.recurring.push(rec);
-    return true;
+    return { ok: true };
   }
 
   function applyRequest(req) {
@@ -3320,10 +3334,10 @@
       if (action === 'add_task')         return applyAddTask(params);
       if (action === 'complete_task')    return applyCompleteTask(params);
       if (action === 'create_recurring') return applyCreateRecurring(params);
-      return false;
+      return { ok: false, reason: `Action inconnue : ${action}` };
     } catch (e) {
       console.error('Erreur application requête', e);
-      return false;
+      return { ok: false, reason: 'Erreur interne : ' + e.message };
     }
   }
 
@@ -3438,42 +3452,106 @@
 
     const results = [];
     for (const r of checked) {
-      const ok = applyRequest(r.data);
-      results.push({ req: r, ok });
+      const res = applyRequest(r.data);
+      results.push({ req: r, ok: res.ok, reason: res.reason });
     }
 
-    // Sauvegarde des modifications dans donnees.json
-    if (checked.length > 0) {
+    const successes = results.filter(r => r.ok);
+    const failures = results.filter(r => !r.ok);
+
+    // Sauvegarde des modifications dans donnees.json (uniquement si au moins un succès)
+    if (successes.length > 0) {
       try { await driveWriteData(memoryStore); }
       catch (e) {
         alert('Erreur lors de la sauvegarde des modifications : ' + e.message);
-        return; // on n'ose pas purger l'inbox si la sauvegarde a échoué
+        return; // on ne purge pas si la sauvegarde a échoué
       }
     }
 
-    // Suppression de TOUS les fichiers inbox traités (cochés et non cochés)
-    for (const r of [...checked, ...notChecked]) {
-      try { await driveDeleteFile(r.fileId); }
-      catch (e) { console.warn('Erreur suppression', r.fileName, e); }
+    // Suppression des fichiers : on supprime les non-cochés et les succès, MAIS on
+    // garde les échecs pour que tu puisses les voir et les retraiter.
+    for (const r of notChecked) {
+      try { await driveDeleteFile(r.fileId); } catch (e) { console.warn('Erreur suppression', r.fileName, e); }
+    }
+    for (const r of successes) {
+      try { await driveDeleteFile(r.req.fileId); } catch (e) { console.warn('Erreur suppression', r.req.fileName, e); }
     }
 
-    // Reset
-    inboxRequests = [];
+    // Les échecs restent dans la inbox côté Drive ET dans l'état mémoire
+    inboxRequests = failures.map(f => f.req);
     Object.keys(inboxChecks).forEach(k => delete inboxChecks[k]);
     updateInboxBadge();
 
-    // Message bilan
-    const okCount = results.filter(r => r.ok).length;
-    const failCount = results.filter(r => !r.ok).length;
-    const ignoredCount = notChecked.length;
-    let bilan = [];
-    if (okCount > 0) bilan.push(`${okCount} appliquée${okCount > 1 ? 's' : ''}`);
-    if (failCount > 0) bilan.push(`${failCount} en échec`);
-    if (ignoredCount > 0) bilan.push(`${ignoredCount} ignorée${ignoredCount > 1 ? 's' : ''}`);
-    if (bilan.length > 0) flashWarning(bilan.join(' · '));
-
     // Re-render pour montrer les modifications
     render();
+
+    // Affichage du bilan
+    if (failures.length > 0) {
+      openFailurePopup(failures);
+    } else {
+      const okCount = successes.length;
+      const ignoredCount = notChecked.length;
+      let bilan = [];
+      if (okCount > 0) bilan.push(`${okCount} appliquée${okCount > 1 ? 's' : ''}`);
+      if (ignoredCount > 0) bilan.push(`${ignoredCount} ignorée${ignoredCount > 1 ? 's' : ''}`);
+      if (bilan.length > 0) flashWarning(bilan.join(' · '));
+    }
+  }
+
+  function openFailurePopup(failures) {
+    const existing = document.getElementById('failure-popup-bg');
+    if (existing) existing.remove();
+    const bg = document.createElement('div');
+    bg.id = 'failure-popup-bg';
+    bg.className = 'inbox-popup-bg';
+    bg.innerHTML = `
+      <div class="inbox-popup" onclick="event.stopPropagation()" style="border-top: 4px solid #A32D2D">
+        <div class="inbox-popup-head">
+          <i class="ti ti-alert-triangle" style="font-size:18px; color:#A32D2D"></i>
+          <h3>${failures.length} requête${failures.length > 1 ? 's' : ''} en échec</h3>
+          <button class="inbox-close" title="Fermer"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="inbox-popup-body">
+          <p style="font-size:12px; color:var(--color-text-secondary); margin: 0 0 12px">
+            Ces requêtes n'ont pas pu être appliquées. Les fichiers correspondants sont <strong>conservés dans le Drive</strong>
+            (dossier <code>Marcus/inbox/</code>) pour que tu puisses les corriger ou les supprimer manuellement.
+          </p>
+          ${failures.map(f => `
+            <div class="inbox-item" style="background: #FCEBEB; border-color: #F0C3C3; cursor: default">
+              <i class="ti ti-x" style="color:#A32D2D; font-size:16px; margin-top:2px"></i>
+              <div class="inbox-item-body">
+                <div class="inbox-item-action">${describeRequest(f.req.data)}</div>
+                ${f.req.data.userInstruction ? `<div class="inbox-item-quote">« ${escape(f.req.data.userInstruction)} »</div>` : ''}
+                <div style="font-size:12px; color:#791F1F; margin-top:6px; padding-left:8px; border-left: 2px solid #A32D2D">
+                  ${escape(f.reason || 'Échec sans détail')}
+                </div>
+                <div class="inbox-item-time">Fichier : ${escape(f.req.fileName || '?')}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="inbox-popup-foot">
+          <div style="flex:1; font-size:11px; color:var(--color-text-tertiary)">
+            Tu peux retourner sur Claude.ai pour corriger la demande, ou supprimer les fichiers manuellement dans ton Drive.
+          </div>
+          <button id="failure-purge" style="color:#A32D2D">Supprimer ces requêtes du Drive</button>
+          <button id="failure-close" class="inbox-apply-btn">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    bg.onclick = () => { bg.remove(); };
+    bg.querySelector('.inbox-close').onclick = () => { bg.remove(); };
+    bg.querySelector('#failure-close').onclick = () => { bg.remove(); };
+    bg.querySelector('#failure-purge').onclick = async () => {
+      if (!confirm(`Supprimer définitivement les ${failures.length} fichier(s) de requête en échec dans Drive ?`)) return;
+      for (const f of failures) {
+        try { await driveDeleteFile(f.req.fileId); } catch (e) { console.warn('Erreur suppression', e); }
+      }
+      inboxRequests = [];
+      updateInboxBadge();
+      bg.remove();
+    };
   }
 
   async function fetchUserInfo() {
