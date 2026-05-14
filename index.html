@@ -701,6 +701,128 @@
   }
   .user-chip .signout:hover { color: #A32D2D; }
 
+  /* Badge inbox Claude */
+  .inbox-badge {
+    background: #0C447C;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    animation: inbox-pulse 2s ease-in-out infinite;
+  }
+  .inbox-badge:hover { background: #185FA5; }
+  .inbox-badge i { font-size: 13px; }
+  @keyframes inbox-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(24, 95, 165, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(24, 95, 165, 0); }
+  }
+
+  .inbox-popup-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 60px;
+    z-index: 1000;
+  }
+  .inbox-popup {
+    background: var(--color-bg-primary);
+    border-radius: var(--radius-lg);
+    width: 560px;
+    max-width: 92%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    border: 0.5px solid var(--color-border-secondary);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  }
+  .inbox-popup-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .inbox-popup-head h3 {
+    margin: 0;
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .inbox-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    padding: 4px;
+  }
+  .inbox-close:hover { color: var(--color-text-primary); }
+  .inbox-popup-body {
+    padding: 12px 18px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .inbox-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: 6px;
+    cursor: pointer;
+    background: var(--color-bg-secondary);
+  }
+  .inbox-item:hover { background: var(--color-bg-tertiary); }
+  .inbox-item input[type=checkbox] {
+    margin-top: 2px;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+  .inbox-item-body { flex: 1; min-width: 0; }
+  .inbox-item-action { font-size: 13px; color: var(--color-text-primary); line-height: 1.4; }
+  .inbox-item-quote {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin-top: 4px;
+    padding-left: 8px;
+    border-left: 2px solid var(--color-border-tertiary);
+  }
+  .inbox-item-time {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    margin-top: 4px;
+  }
+  .inbox-popup-foot {
+    padding: 12px 18px;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .inbox-popup-foot button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .inbox-apply-btn {
+    background: var(--color-bg-info) !important;
+    color: var(--color-text-info) !important;
+    border-color: var(--color-border-info) !important;
+    font-weight: 500;
+  }
+
   /* Bouton récurrent : rond gris, isolé */
   .recurring-btn {
     width: 34px;
@@ -906,6 +1028,7 @@
     <i class="ti ti-sparkles" style="font-size:20px; vertical-align:-3px"></i>
     Marcus
     <span id="sync-indicator-slot"></span>
+    <span id="inbox-badge-slot"></span>
     <span id="user-chip-slot" style="float:right; font-size:12px"></span>
     <button id="reset-btn" class="reset-btn" style="float:right; font-size:11px; display:none">
       <i class="ti ti-trash" style="font-size:11px"></i> Réinitialiser
@@ -2964,6 +3087,395 @@
     dataFileId = null;
   }
 
+  // ============ INBOX CLAUDE ============
+  let inboxFolderId = null;
+  let inboxRequests = []; // [{ fileId, fileName, data: {...} }]
+
+  async function driveFindOrCreateInboxFolder() {
+    if (!folderId) folderId = await driveFindOrCreateFolder();
+    const q = encodeURIComponent(`name='inbox' and mimeType='application/vnd.google-apps.folder' and '${folderId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list inbox failed: ' + res.status);
+    const data = await res.json();
+    if (data.files && data.files.length > 0) return data.files[0].id;
+    // Création
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'inbox', mimeType: 'application/vnd.google-apps.folder', parents: [folderId] })
+    });
+    if (!createRes.ok) throw new Error('Drive create inbox failed: ' + createRes.status);
+    const created = await createRes.json();
+    return created.id;
+  }
+
+  async function driveListInbox() {
+    if (!inboxFolderId) inboxFolderId = await driveFindOrCreateInboxFolder();
+    const q = encodeURIComponent(`'${inboxFolderId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,createdTime,mimeType)&orderBy=createdTime`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list inbox content failed: ' + res.status);
+    const data = await res.json();
+    const files = data.files || [];
+    // On ne garde que les fichiers JSON (ignore éventuels sous-dossiers)
+    return files.filter(f => f.mimeType !== 'application/vnd.google-apps.folder');
+  }
+
+  async function driveReadFileContent(fileId, mimeType) {
+    // Pour les Google Docs/Sheets natifs, il faut exporter en texte. Sinon alt=media.
+    let url;
+    if (mimeType && mimeType.startsWith('application/vnd.google-apps.')) {
+      url = `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`;
+    } else {
+      url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    }
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!res.ok) throw new Error('Drive read content failed: ' + res.status);
+    return res.text();
+  }
+
+  async function driveDeleteFile(fileId) {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok && res.status !== 404) throw new Error('Drive delete failed: ' + res.status);
+  }
+
+  async function driveCreateBackup() {
+    if (!dataFileId) return;
+    // On copie le fichier de données en gardant la date du jour
+    const now = new Date();
+    const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+    // Trouver/créer le dossier backups
+    if (!folderId) folderId = await driveFindOrCreateFolder();
+    const q = encodeURIComponent(`name='backups' and mimeType='application/vnd.google-apps.folder' and '${folderId}' in parents and trashed=false`);
+    const fres = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!fres.ok) throw new Error('Drive backup folder list failed: ' + fres.status);
+    let backupFolder = (await fres.json()).files?.[0];
+    if (!backupFolder) {
+      const cres = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'backups', mimeType: 'application/vnd.google-apps.folder', parents: [folderId] })
+      });
+      if (!cres.ok) throw new Error('Drive backup folder create failed: ' + cres.status);
+      backupFolder = await cres.json();
+    }
+    // Copie du fichier de données
+    const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${dataFileId}/copy`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: `donnees-${stamp}.json`, parents: [backupFolder.id] })
+    });
+    if (!copyRes.ok) console.warn('Backup copy failed', copyRes.status);
+  }
+
+  async function loadInboxRequests() {
+    inboxRequests = [];
+    try {
+      const files = await driveListInbox();
+      for (const f of files) {
+        try {
+          const text = await driveReadFileContent(f.id, f.mimeType);
+          // On essaie de parser le contenu : soit JSON pur, soit JSON dans un bloc texte
+          const data = parseClaudeRequest(text);
+          if (data) inboxRequests.push({ fileId: f.id, fileName: f.name, createdTime: f.createdTime, data });
+          else console.warn('Fichier inbox ignoré (pas un JSON valide):', f.name);
+        } catch (e) {
+          console.warn('Erreur lecture inbox', f.name, e);
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur listing inbox', e);
+    }
+  }
+
+  function parseClaudeRequest(text) {
+    if (!text) return null;
+    // Cas simple : c'est déjà du JSON pur
+    try {
+      const obj = JSON.parse(text);
+      return validateRequestShape(obj);
+    } catch (_) { /* on essaie autre chose */ }
+    // Cas : du JSON entouré de texte (cas Claude Doc texte)
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        const obj = JSON.parse(match[0]);
+        return validateRequestShape(obj);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  function validateRequestShape(obj) {
+    if (!obj || typeof obj !== 'object') return null;
+    if (!obj.action) return null;
+    const valid = ['create_list', 'add_task', 'complete_task', 'create_recurring'];
+    if (!valid.includes(obj.action)) return null;
+    return obj;
+  }
+
+  // ============ APPLICATION DES REQUÊTES ============
+
+  function findListInAllTabs(criteria) {
+    // criteria = { tab, titleMatch } - retourne { list, tab } ou null
+    const matchTitle = (l) => {
+      if (!criteria.titleMatch) return false;
+      const a = l.title.toLowerCase();
+      const b = criteria.titleMatch.toLowerCase();
+      return a === b || a.includes(b) || b.includes(a);
+    };
+    const tabsToSearch = criteria.tab ? [criteria.tab] : TAB_IDS;
+    for (const t of tabsToSearch) {
+      if (!state.lists[t]) continue;
+      const found = state.lists[t].find(matchTitle);
+      if (found) return { list: found, tab: t };
+    }
+    return null;
+  }
+
+  function applyCreateList(params) {
+    const tab = TAB_IDS.includes(params.tab) ? params.tab : 'PETRAM';
+    const cols = state.columns[tab] || [];
+    const columnId = (params.columnId && cols.find(c => c.id === params.columnId))
+      ? params.columnId
+      : (cols[0]?.id || '');
+    const list = {
+      id: 'cl-' + uid(),
+      columnId,
+      title: params.title || 'Sans titre',
+      color: params.color || 'blue',
+      emoji: params.emoji || '',
+      pinned: !!params.pinned,
+      highlighted: false,
+      dueIntermediate: params.dueIntermediate || '',
+      dueFinal: params.dueFinal || '',
+      tasks: Array.isArray(params.tasks) ? params.tasks.map(t => ({
+        id: uid(), text: String(t), done: false, subs: []
+      })) : []
+    };
+    state.lists[tab] = state.lists[tab] || [];
+    state.lists[tab].push(list);
+    return true;
+  }
+
+  function applyAddTask(params) {
+    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
+    if (!target) return false;
+    target.list.tasks = target.list.tasks || [];
+    target.list.tasks.push({ id: uid(), text: params.text || 'Tâche', done: false, subs: [] });
+    return true;
+  }
+
+  function applyCompleteTask(params) {
+    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
+    if (!target) return false;
+    const wanted = (params.taskText || '').toLowerCase();
+    function walk(arr) {
+      for (const t of arr) {
+        if (t.text.toLowerCase() === wanted || t.text.toLowerCase().includes(wanted)) {
+          t.done = true;
+          return true;
+        }
+        if (t.subs && walk(t.subs)) return true;
+      }
+      return false;
+    }
+    return walk(target.list.tasks || []);
+  }
+
+  function applyCreateRecurring(params) {
+    const firstZoneId = state.recurringZones[0]?.id;
+    const rec = {
+      id: 'rec-' + uid(),
+      title: params.title || 'Sans titre',
+      emoji: params.emoji || '🔁',
+      color: params.color || 'gray',
+      freq: params.freq || 'weekly',
+      weekdays: params.weekdays || [1],
+      monthDay: params.monthDay || 1,
+      yearDate: params.yearDate || '',
+      intervalValue: params.intervalValue || 1,
+      intervalUnit: params.intervalUnit || 'week',
+      startDate: params.startDate || toIsoDate(today()),
+      zoneId: params.zoneId || firstZoneId,
+      doneHistory: []
+    };
+    state.recurring.push(rec);
+    return true;
+  }
+
+  function applyRequest(req) {
+    try {
+      const action = req.action;
+      const params = req.params || {};
+      if (action === 'create_list')      return applyCreateList(params);
+      if (action === 'add_task')         return applyAddTask(params);
+      if (action === 'complete_task')    return applyCompleteTask(params);
+      if (action === 'create_recurring') return applyCreateRecurring(params);
+      return false;
+    } catch (e) {
+      console.error('Erreur application requête', e);
+      return false;
+    }
+  }
+
+  // ============ AFFICHAGE DU BADGE INBOX ============
+  function updateInboxBadge() {
+    const slot = document.getElementById('inbox-badge-slot');
+    if (!slot) return;
+    if (inboxRequests.length === 0) { slot.innerHTML = ''; return; }
+    slot.innerHTML = `
+      <button class="inbox-badge" id="inbox-badge-btn" title="Voir les requêtes de Claude">
+        <i class="ti ti-mail-filled"></i>
+        ${inboxRequests.length} requête${inboxRequests.length > 1 ? 's' : ''} de Claude
+      </button>
+    `;
+    const btn = document.getElementById('inbox-badge-btn');
+    if (btn) btn.onclick = openInboxPopup;
+  }
+
+  // État local : cases cochées par l'utilisateur (par fileId)
+  const inboxChecks = {};
+
+  function describeRequest(req) {
+    const a = req.action;
+    const p = req.params || {};
+    if (a === 'create_list') {
+      let txt = `Créer une liste « ${p.title || '?'} »`;
+      if (p.tab) txt += ` dans <strong>${p.tab}</strong>`;
+      if (p.dueFinal) txt += `, échéance ${fmtDate(p.dueFinal)}`;
+      if (p.dueIntermediate) txt += ` (intermédiaire ${fmtDate(p.dueIntermediate)})`;
+      if (Array.isArray(p.tasks) && p.tasks.length > 0) txt += `, avec ${p.tasks.length} tâche${p.tasks.length > 1 ? 's' : ''}`;
+      return txt;
+    }
+    if (a === 'add_task') return `Ajouter « ${p.text || '?'} » dans la liste « ${p.listTitle || '?'} »`;
+    if (a === 'complete_task') return `Cocher « ${p.taskText || '?'} » dans « ${p.listTitle || '?'} »`;
+    if (a === 'create_recurring') {
+      let txt = `Récurrence « ${p.title || '?'} »`;
+      if (p.freq === 'yearly' && p.yearDate) txt += ` (annuelle, ${p.yearDate})`;
+      else if (p.freq === 'monthly') txt += ` (mensuelle, jour ${p.monthDay || '?'})`;
+      else if (p.freq === 'weekly') txt += ` (hebdo)`;
+      else if (p.freq === 'interval') txt += ` (tous les ${p.intervalValue || '?'} ${p.intervalUnit || ''})`;
+      return txt;
+    }
+    return JSON.stringify(req);
+  }
+
+  function openInboxPopup() {
+    const existing = document.getElementById('inbox-popup-bg');
+    if (existing) existing.remove();
+    const bg = document.createElement('div');
+    bg.id = 'inbox-popup-bg';
+    bg.className = 'inbox-popup-bg';
+    bg.innerHTML = `
+      <div class="inbox-popup" onclick="event.stopPropagation()">
+        <div class="inbox-popup-head">
+          <i class="ti ti-mail-filled" style="font-size:18px; color:#0C447C"></i>
+          <h3>Requêtes de Claude (${inboxRequests.length})</h3>
+          <button class="inbox-close" title="Fermer plus tard"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="inbox-popup-body">
+          <p style="font-size:12px; color:var(--color-text-secondary); margin: 0 0 12px">
+            Cochez les requêtes que vous souhaitez appliquer.
+            <strong>Les requêtes non cochées seront supprimées définitivement.</strong>
+          </p>
+          ${inboxRequests.map(r => `
+            <label class="inbox-item">
+              <input type="checkbox" data-file="${r.fileId}" ${inboxChecks[r.fileId] ? 'checked' : ''}>
+              <div class="inbox-item-body">
+                <div class="inbox-item-action">${describeRequest(r.data)}</div>
+                ${r.data.userInstruction ? `<div class="inbox-item-quote">« ${escape(r.data.userInstruction)} »</div>` : ''}
+                <div class="inbox-item-time">${r.createdTime ? new Date(r.createdTime).toLocaleString('fr-FR') : ''}</div>
+              </div>
+            </label>
+          `).join('')}
+        </div>
+        <div class="inbox-popup-foot">
+          <button id="inbox-check-all">Tout cocher</button>
+          <button id="inbox-uncheck-all">Tout décocher</button>
+          <div style="flex:1"></div>
+          <button id="inbox-later">Plus tard</button>
+          <button id="inbox-apply" class="inbox-apply-btn">Appliquer et purger</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(bg);
+    bg.onclick = () => { bg.remove(); };
+    bg.querySelector('.inbox-close').onclick = () => { bg.remove(); };
+    bg.querySelector('#inbox-later').onclick = () => { bg.remove(); };
+    bg.querySelector('#inbox-check-all').onclick = () => {
+      bg.querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = true; inboxChecks[cb.dataset.file] = true; });
+    };
+    bg.querySelector('#inbox-uncheck-all').onclick = () => {
+      bg.querySelectorAll('input[type=checkbox]').forEach(cb => { cb.checked = false; inboxChecks[cb.dataset.file] = false; });
+    };
+    bg.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.onchange = () => { inboxChecks[cb.dataset.file] = cb.checked; };
+    });
+    bg.querySelector('#inbox-apply').onclick = async () => {
+      bg.remove();
+      await applyInboxRequests();
+    };
+  }
+
+  async function applyInboxRequests() {
+    const checked = inboxRequests.filter(r => inboxChecks[r.fileId]);
+    const notChecked = inboxRequests.filter(r => !inboxChecks[r.fileId]);
+
+    // Sauvegarde avant application (sécurité)
+    if (checked.length > 0) {
+      try { await driveCreateBackup(); }
+      catch (e) { console.warn('Backup avant application a échoué, on continue', e); }
+    }
+
+    const results = [];
+    for (const r of checked) {
+      const ok = applyRequest(r.data);
+      results.push({ req: r, ok });
+    }
+
+    // Sauvegarde des modifications dans donnees.json
+    if (checked.length > 0) {
+      try { await driveWriteData(memoryStore); }
+      catch (e) {
+        alert('Erreur lors de la sauvegarde des modifications : ' + e.message);
+        return; // on n'ose pas purger l'inbox si la sauvegarde a échoué
+      }
+    }
+
+    // Suppression de TOUS les fichiers inbox traités (cochés et non cochés)
+    for (const r of [...checked, ...notChecked]) {
+      try { await driveDeleteFile(r.fileId); }
+      catch (e) { console.warn('Erreur suppression', r.fileName, e); }
+    }
+
+    // Reset
+    inboxRequests = [];
+    Object.keys(inboxChecks).forEach(k => delete inboxChecks[k]);
+    updateInboxBadge();
+
+    // Message bilan
+    const okCount = results.filter(r => r.ok).length;
+    const failCount = results.filter(r => !r.ok).length;
+    const ignoredCount = notChecked.length;
+    let bilan = [];
+    if (okCount > 0) bilan.push(`${okCount} appliquée${okCount > 1 ? 's' : ''}`);
+    if (failCount > 0) bilan.push(`${failCount} en échec`);
+    if (ignoredCount > 0) bilan.push(`${ignoredCount} ignorée${ignoredCount > 1 ? 's' : ''}`);
+    if (bilan.length > 0) flashWarning(bilan.join(' · '));
+
+    // Re-render pour montrer les modifications
+    render();
+  }
+
   async function fetchUserInfo() {
     const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: 'Bearer ' + accessToken }
@@ -3059,6 +3571,9 @@
       // Lancer l'app
       load();
       setSyncStatus('idle', 'à jour');
+      // Charger les requêtes Claude depuis la inbox
+      await loadInboxRequests();
+      updateInboxBadge();
     } catch (e) {
       console.error('Erreur post-auth', e);
       showAuthScreen('Erreur lors du chargement : ' + e.message);
