@@ -3243,12 +3243,27 @@
 
   function applyAddTask(params) {
     if (!params.listTitle) return { ok: false, reason: 'Paramètre listTitle manquant' };
-    const target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
+    let target = findListInAllTabs({ tab: params.tab, titleMatch: params.listTitle });
     if (!target) {
-      return {
-        ok: false,
-        reason: `Aucune liste trouvée avec le titre "${params.listTitle}"${params.tab ? ' dans l\'onglet ' + params.tab : ''}. Astuce : pour CRÉER une nouvelle liste, l'action doit être "create_list", pas "add_task".`
+      // Mode souple : on crée automatiquement la liste si elle n'existe pas
+      const tab = TAB_IDS.includes(params.tab) ? params.tab : 'PETRAM';
+      const cols = state.columns[tab] || [];
+      const columnId = cols[0]?.id || '';
+      const newList = {
+        id: 'cl-' + uid(),
+        columnId,
+        title: params.listTitle,
+        color: 'blue',
+        emoji: '',
+        pinned: false,
+        highlighted: false,
+        dueIntermediate: '',
+        dueFinal: params.dueFinal || '',
+        tasks: []
       };
+      state.lists[tab] = state.lists[tab] || [];
+      state.lists[tab].push(newList);
+      target = { list: newList, tab };
     }
     target.list.tasks = target.list.tasks || [];
     target.list.tasks.push({ id: uid(), text: params.text || 'Tâche', done: false, subs: [] });
@@ -3461,6 +3476,16 @@
 
     // Sauvegarde des modifications dans donnees.json (uniquement si au moins un succès)
     if (successes.length > 0) {
+      // Important : applyRequest a modifié state.lists et state.recurring directement.
+      // Il faut donc resynchroniser le memoryStore avant l'écriture Drive,
+      // sinon driveWriteData(memoryStore) pousserait l'ancien état sérialisé.
+      // On annule aussi tout débouncer en attente : on prend la main sur la sauvegarde.
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      save();
+      saveCols();
+      saveDayMarks();
+      saveRecurring();
+      saveRecurringZones();
       try { await driveWriteData(memoryStore); }
       catch (e) {
         alert('Erreur lors de la sauvegarde des modifications : ' + e.message);
