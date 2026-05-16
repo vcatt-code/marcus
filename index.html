@@ -2344,7 +2344,7 @@
 
   // Une liste remonte au dashboard si :
   // - elle est épinglée
-  // - elle a une échéance (intermédiaire ou finale) dans ≤ 7 jours OU passée
+  // - elle a une échéance (intermédiaire ou finale) dans ≤ 3 jours OU passée
   // - elle est elle-même surlignée
   // - elle contient au moins une tâche surlignée
   function listShouldShowInDashboard(list) {
@@ -2352,10 +2352,10 @@
     if (list.highlighted) return true;
     if (listHasHighlightedTask(list)) return true;
     const t = today();
-    const sevenDays = new Date(t);
-    sevenDays.setDate(sevenDays.getDate() + 7);
+    const limit = new Date(t);
+    limit.setDate(limit.getDate() + 3);
     const d = getNextDueDate(list);
-    if (d && d <= sevenDays) return true;
+    if (d && d <= limit) return true;
     return false;
   }
 
@@ -2411,7 +2411,7 @@
       const diff = Math.round((d - today()) / 86400000);
       dueLabel = fmtDate(list.dueIntermediate || list.dueFinal);
       if (diff < 0) dueClass = 'urgent';
-      else if (diff <= 7) dueClass = 'soon';
+      else if (diff <= 3) dueClass = 'soon';
     }
     const showTabChip = ['CATT.IMMO','CATT.INVEST','VCC','GAAC','NEST','REDAC'].includes(tabId);
     const hlCls = list.highlighted ? ' highlighted' : '';
