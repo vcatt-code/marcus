@@ -3047,6 +3047,7 @@
       DAY_PALETTE.push({ id: newId, label: 'Nouvelle', bg: '#C4DCF5', text: '#0A3866' });
       saveDayPalette();
       render();
+    } else if (a === 'toggle-recurring') {
       state.view = state.view === 'recurring' ? 'columns' : 'recurring';
       render();
     } else if (a === 'new-recurring') {
