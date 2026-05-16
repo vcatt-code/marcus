@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Marcus</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ccircle%20cx='50'%20cy='50'%20r='49'%20fill='%23111111'/%3E%3Ccircle%20cx='50'%20cy='50'%20r='44'%20fill='%23ffffff'/%3E%3Ccircle%20cx='50'%20cy='50'%20r='40'%20fill='none'%20stroke='%237ec46f'%20stroke-width='13'/%3E%3Crect%20x='50'%20y='44'%20width='34'%20height='12'%20fill='%23ffffff'/%3E%3Ctext%20x='50'%20y='50'%20font-family='Arial,Helvetica,sans-serif'%20font-weight='900'%20font-size='62'%20fill='%23111111'%20text-anchor='middle'%20dominant-baseline='central'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ccircle%20cx='50'%20cy='50'%20r='49'%20fill='%23111111'/%3E%3Ccircle%20cx='50'%20cy='50'%20r='44'%20fill='%23ffffff'/%3E%3Ccircle%20cx='50'%20cy='50'%20r='40'%20fill='none'%20stroke='%237ec46f'%20stroke-width='13'/%3E%3Crect%20x='50'%20y='44'%20width='34'%20height='12'%20fill='%23ffffff'/%3E%3Ctext%20x='50'%20y='50'%20font-family='Arial,Helvetica,sans-serif'%20font-weight='900'%20font-size='62'%20fill='%23111111'%20text-anchor='middle'%20dominant-baseline='central'%3EM%3C/text%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.20.0/dist/tabler-icons.min.css" rel="stylesheet">
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -256,6 +258,18 @@
   }
   .task-text { flex: 1; cursor: text; word-break: break-word; }
   .task-text.done { text-decoration: line-through; color: var(--color-text-tertiary); }
+  .task-text:hover { background: var(--color-bg-secondary); border-radius: 3px; }
+  .task-edit-input {
+    flex: 1;
+    font-size: inherit;
+    font-family: inherit;
+    padding: 2px 6px;
+    border: 1px solid var(--color-border-info);
+    border-radius: 3px;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    outline: none;
+  }
 
   .icon-btn {
     background: transparent;
@@ -337,18 +351,43 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
   .cal-popover .palette-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .cal-popover .swatch {
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 1.5px solid transparent;
+  .cal-popover .palette-list { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .cal-popover .palette-line {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer;
   }
-  .cal-popover .swatch.clear {
+  .cal-popover .palette-line:hover { background: var(--color-bg-secondary); }
+  .cal-popover .palette-line.selected { background: var(--color-bg-secondary); font-weight: 500; }
+  .cal-popover .palette-line .swatch {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid transparent; flex-shrink: 0;
+  }
+  .cal-popover .palette-line .swatch.clear {
     background: transparent !important;
     border: 1px dashed var(--color-border-secondary);
     display: flex; align-items: center; justify-content: center;
     font-size: 11px; color: var(--color-text-tertiary);
   }
+  .palette-manage-btn {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 11px; color: var(--color-text-tertiary);
+    display: flex; align-items: center; gap: 4px; padding: 2px 4px;
+    width: 100%;
+  }
+  .palette-manage-btn:hover { color: var(--color-text-primary); }
+  .palette-edit-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .palette-edit-row input[type=color] {
+    width: 36px; height: 30px; padding: 0; border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 4px; cursor: pointer; background: none;
+  }
+  .palette-edit-name {
+    flex: 1; height: 30px; font-size: 13px; padding: 0 8px;
+    border: 0.5px solid var(--color-border-tertiary); border-radius: 4px;
+    background: var(--color-bg-primary); color: var(--color-text-primary);
+  }
+  .cal-day.weekend span { font-weight: 500; }
 
   .cal-tooltip {
     position: absolute;
@@ -428,15 +467,21 @@
   }
   .add-btn {
     background: transparent;
-    border: 0.5px dashed var(--color-border-secondary);
-    border-radius: var(--radius-md);
-    padding: 6px 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 3px 6px;
     cursor: pointer;
-    font-size: 12px;
-    color: var(--color-text-secondary);
-    width: 100%;
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    opacity: 0.6;
+    transition: opacity 0.15s, background 0.15s;
   }
-  .add-btn:hover { background: var(--color-bg-primary); color: var(--color-text-primary); }
+  .todo-card:hover .add-btn { opacity: 1; }
+  .add-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
   .add-task-row { display: flex; gap: 4px; margin-top: 4px; }
   .add-task-row input { flex: 1; height: 28px; font-size: 12px; padding: 0 8px; }
 
@@ -1046,24 +1091,43 @@
 <script>
 (function() {
   const COLORS = [
-    { id: 'pink',   bg: '#FBEAF0', text: '#72243E', border: '#D4537E' },
-    { id: 'red',    bg: '#FCEBEB', text: '#791F1F', border: '#A32D2D' },
-    { id: 'amber',  bg: '#FAEEDA', text: '#633806', border: '#BA7517' },
-    { id: 'yellow', bg: '#FFF4B8', text: '#5C4A00', border: '#D4A800' },
-    { id: 'green',  bg: '#EAF3DE', text: '#27500A', border: '#639922' },
-    { id: 'teal',   bg: '#E1F5EE', text: '#085041', border: '#0F6E56' },
-    { id: 'blue',   bg: '#E6F1FB', text: '#0C447C', border: '#185FA5' },
-    { id: 'purple', bg: '#EEEDFE', text: '#3C3489', border: '#534AB7' },
-    { id: 'gray',   bg: '#F1EFE8', text: '#444441', border: '#888780' }
+    { id: 'pink',    bg: '#F9D5E3', text: '#6E1538', border: '#C2185B' },
+    { id: 'rose',    bg: '#F8C8D8', text: '#7A1C3D', border: '#AD1457' },
+    { id: 'red',     bg: '#F8C9C9', text: '#6B1212', border: '#C62828' },
+    { id: 'orange',  bg: '#FBDCC0', text: '#6B3000', border: '#E65100' },
+    { id: 'amber',   bg: '#FBE3B8', text: '#5C3A00', border: '#EF8C00' },
+    { id: 'yellow',  bg: '#FBEFA8', text: '#544300', border: '#C9A200' },
+    { id: 'lime',    bg: '#DEEDB0', text: '#33450A', border: '#7CB342' },
+    { id: 'green',   bg: '#C8E6C0', text: '#1B4012', border: '#2E7D32' },
+    { id: 'teal',    bg: '#BEE6DD', text: '#06453A', border: '#00897B' },
+    { id: 'cyan',    bg: '#BEE5EC', text: '#064752', border: '#0097A7' },
+    { id: 'blue',    bg: '#C4DCF5', text: '#0A3866', border: '#1565C0' },
+    { id: 'indigo',  bg: '#CBD0F0', text: '#23295E', border: '#3949AB' },
+    { id: 'purple',  bg: '#D9CCEE', text: '#3A2363', border: '#6A3FB0' },
+    { id: 'magenta', bg: '#EBC8E8', text: '#5C1857', border: '#A0288F' },
+    { id: 'brown',   bg: '#DECEC0', text: '#3F2A18', border: '#795548' },
+    { id: 'slate',   bg: '#CDD4DA', text: '#26333D', border: '#546E7A' },
+    { id: 'gray',    bg: '#D6D5CE', text: '#33322E', border: '#6E6D67' }
   ];
-  const DAY_PALETTE = [
-    { id: 'ferie',    label: 'Férié',       bg: '#FCEBEB', text: '#791F1F' },
-    { id: 'vacances', label: 'Vacances',    bg: '#EAF3DE', text: '#27500A' },
-    { id: 'rdv',      label: 'RDV',         bg: '#E6F1FB', text: '#0C447C' },
-    { id: 'depl',     label: 'Déplacement', bg: '#FAEEDA', text: '#633806' },
-    { id: 'note',     label: 'Note',        bg: '#EEEDFE', text: '#3C3489' }
+  const DEFAULT_DAY_PALETTE = [
+    { id: 'ferie',    label: 'Férié',       bg: '#F8C9C9', text: '#6B1212' },
+    { id: 'vacances', label: 'Vacances',    bg: '#C8E6C0', text: '#1B4012' },
+    { id: 'rdv',      label: 'RDV',         bg: '#C4DCF5', text: '#0A3866' },
+    { id: 'depl',     label: 'Déplacement', bg: '#FBE3B8', text: '#5C3A00' },
+    { id: 'note',     label: 'Note',        bg: '#D9CCEE', text: '#3A2363' },
+    { id: 'perso',    label: 'Perso',       bg: '#BEE6DD', text: '#06453A' },
+    { id: 'impt',     label: 'Important',   bg: '#EBC8E8', text: '#5C1857' }
   ];
-  const EMOJIS = ['📋', '⚡', '🎯', '📊', '🔍', '💡', '⚙️', '📞', '✉️', '🚀', '🔥', '⭐'];
+  // La palette effective est chargée depuis le storage (éditable par l'utilisateur)
+  let DAY_PALETTE = JSON.parse(JSON.stringify(DEFAULT_DAY_PALETTE));
+  // Couleur dédiée aux week-ends (samedi + dimanche), appliquée systématiquement
+  const WEEKEND_COLOR = { bg: '#E7E4DA', text: '#6E6D67' };
+  const EMOJIS = [
+    '📋','⚡','🎯','📊','🔍','💡','⚙️','📞','✉️','🚀','🔥','⭐',
+    '📅','📌','✅','❗','⏰','💰','🏠','🚗','✈️','🎓','🧾','📦',
+    '🛠️','🩺','💊','🏋️','🍽️','🛒','🎂','🎉','🌱','🐾','📝','🔑',
+    '💼','🏢','⚖️','🔬','🔭','🌍','☎️','📈','🗂️','🧠','❤️','🎨'
+  ];
 
   // ============ CONFIGURATION DRIVE ============
   const CLIENT_ID = '264100909833-cq4fkln2l9s50g3km9nsioe6or0bk34r.apps.googleusercontent.com';
@@ -1175,6 +1239,8 @@
     dayMarks: {},
     editingList: null,
     addingTaskTo: null,
+    editingTask: null, // `${listId}::${taskId}` quand une tâche est en cours d'édition
+    editingPalette: false,
     openPopoverDate: null,
     popoverPos: null,
     tooltip: null,
@@ -1472,6 +1538,7 @@
       const c = storage.get('pro_columns');
       const rec = storage.get('pro_recurring');
       const recZ = storage.get('pro_recurring_zones');
+      const dp = storage.get('pro_day_palette');
 
       // Premier chargement : aucune donnée en localStorage → on injecte le seed
       if (!r?.value && !c?.value) {
@@ -1491,6 +1558,12 @@
       if (recZ?.value) {
         const z = JSON.parse(recZ.value);
         if (Array.isArray(z) && z.length > 0) state.recurringZones = z;
+      }
+      if (dp?.value) {
+        try {
+          const pal = JSON.parse(dp.value);
+          if (Array.isArray(pal) && pal.length > 0) DAY_PALETTE = pal;
+        } catch (e) { console.warn('palette jour illisible', e); }
       }
       // Migration : assigner les récurrences sans zoneId à la première zone
       const firstZoneId = state.recurringZones[0]?.id;
@@ -1532,6 +1605,7 @@
   function saveDayMarks() { storage.set('pro_day_marks', JSON.stringify(state.dayMarks)); }
   function saveRecurring() { storage.set('pro_recurring', JSON.stringify(state.recurring)); }
   function saveRecurringZones() { storage.set('pro_recurring_zones', JSON.stringify(state.recurringZones)); }
+  function saveDayPalette() { storage.set('pro_day_palette', JSON.stringify(DAY_PALETTE)); }
 
   // Conversion JJ/MM (UI) ↔ MM-DD (stockage)
   function ddmmToStorage(s) {
@@ -1693,6 +1767,27 @@
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // Convertit une couleur (#rrggbb) en hex propre pour input type=color
+  function rgbToHex(c) {
+    if (!c) return '#cccccc';
+    c = c.trim();
+    if (c[0] === '#') {
+      if (c.length === 7) return c.toLowerCase();
+      if (c.length === 4) return ('#' + c[1]+c[1]+c[2]+c[2]+c[3]+c[3]).toLowerCase();
+    }
+    return '#cccccc';
+  }
+  // À partir d'une couleur de fond claire choisie, dérive une couleur de texte foncée lisible
+  function darkenForText(hex) {
+    hex = rgbToHex(hex);
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    // On assombrit fortement (40% de la valeur) pour le texte
+    const dr = Math.round(r*0.35), dg = Math.round(g*0.35), db = Math.round(b*0.35);
+    return '#' + [dr,dg,db].map(v => ('0'+v.toString(16)).slice(-2)).join('');
+  }
+
   function syncModalInputsToState() {
     if (!state.editingList) return;
     const t = document.getElementById('m-title');
@@ -1727,7 +1822,7 @@
       return da - db;
     });
   }
-  function getColor(id) { return COLORS.find(c => c.id === id) || COLORS[6]; }
+  function getColor(id) { return COLORS.find(c => c.id === id) || COLORS.find(c => c.id === 'blue') || COLORS[0]; }
   function getDayMark(id) { return DAY_PALETTE.find(p => p.id === id); }
 
   function getDuePill(list) {
@@ -1750,11 +1845,15 @@
     const isLast = idx === siblings.length - 1;
     const hlClass = task.highlighted ? ' highlighted' : '';
     const hlBtnClass = task.highlighted ? 'highlight-btn is-on' : 'highlight-btn';
+    const isEditing = state.editingTask === `${listId}::${task.id}`;
+    const textCell = isEditing
+      ? `<input type="text" class="task-edit-input" id="task-edit-input" value="${escape(task.text)}" data-list="${listId}" data-task="${task.id}" />`
+      : `<div class="task-text ${task.done ? 'done' : ''}" data-action="edit-task-text" data-list="${listId}" data-task="${task.id}" title="Cliquer pour modifier">${escape(task.text)}</div>`;
     return `
       <div class="todo-item${subCls}${hlClass}" data-task-id="${task.id}" data-task-depth="${depth}" data-task-list="${listId}">
         <div class="drag-handle" data-drag-handle="${task.id}" title="Glisser pour réorganiser">⋮⋮</div>
         <div class="check ${task.done ? 'done' : ''}" data-action="toggle" data-list="${listId}" data-task="${task.id}"></div>
-        <div class="task-text ${task.done ? 'done' : ''}">${escape(task.text)}</div>
+        ${textCell}
         <div class="task-controls">
           <div class="arrow-stack">
             <button class="icon-btn" data-action="move-task" data-list="${listId}" data-task="${task.id}" data-dir="up" ${isFirst?'disabled style="opacity:0.25"':''} title="Monter"><i class="ti ti-chevron-up" style="font-size:11px"></i></button>
@@ -1810,7 +1909,7 @@
               <button class="icon-btn" data-action="cancel-task"><i class="ti ti-x"></i></button>
             </div>
           ` : `
-            <button class="add-btn" data-action="show-add-task" data-list="${list.id}" data-parent="" style="margin-top:6px">+ Ajouter une tâche</button>
+            <button class="add-btn" data-action="show-add-task" data-list="${list.id}" data-parent="" style="margin-top:4px"><i class="ti ti-plus" style="font-size:11px"></i> Tâche</button>
           `}
         </div>
       </div>
@@ -1912,13 +2011,22 @@
         const dayDate = parseDate(dateStr);
         const isToday = dayDate.getTime() === t.getTime();
         const isPast = dayDate < t;
+        const dow = dayDate.getDay(); // 0 = dimanche, 6 = samedi
+        const isWeekend = (dow === 0 || dow === 6);
         const dots = dueMap[dateStr] || [];
         const mark = state.dayMarks[dateStr];
-        const markStyle = mark ? `background: ${getDayMark(mark)?.bg}; color: ${getDayMark(mark)?.text};` : '';
+        // Priorité : marque utilisateur > couleur week-end > rien
+        let markStyle = '';
+        if (mark) {
+          markStyle = `background: ${getDayMark(mark)?.bg}; color: ${getDayMark(mark)?.text};`;
+        } else if (isWeekend) {
+          markStyle = `background: ${WEEKEND_COLOR.bg}; color: ${WEEKEND_COLOR.text};`;
+        }
         const cls = ['cal-day'];
         if (isPast) cls.push('past');
         if (isToday) cls.push('today');
         if (dots.length) cls.push('has-due');
+        if (isWeekend && !mark) cls.push('weekend');
         days.push(`
           <div class="${cls.join(' ')}" style="${markStyle}" data-action="cal-click" data-date="${dateStr}">
             <span>${d}</span>
@@ -1992,12 +2100,50 @@
     const current = state.dayMarks[d];
     return `
       <div class="cal-popover" style="left:${state.popoverPos.x}px; top:${state.popoverPos.y}px" data-action="popover-stop">
-        <div style="font-size: 12px; color: var(--color-text-secondary); font-weight: 500;">${fmtDate(d)} \u2014 marquer</div>
-        <div class="palette-row">
+        <div style="font-size: 12px; color: var(--color-text-secondary); font-weight: 500; margin-bottom:4px">${fmtDate(d)} \u2014 marquer</div>
+        <div class="palette-list">
           ${DAY_PALETTE.map(p => `
-            <div class="swatch" data-action="set-day-mark" data-date="${d}" data-mark="${p.id}" style="background:${p.bg}; ${current === p.id ? 'border-color:'+p.text : ''}" title="${p.label}"></div>
+            <div class="palette-line ${current === p.id ? 'selected' : ''}" data-action="set-day-mark" data-date="${d}" data-mark="${p.id}">
+              <div class="swatch" style="background:${p.bg}; border-color:${p.text}"></div>
+              <span style="color:${p.text}">${escape(p.label)}</span>
+            </div>
           `).join('')}
-          <div class="swatch clear" data-action="set-day-mark" data-date="${d}" data-mark="" title="Aucun">×</div>
+          <div class="palette-line" data-action="set-day-mark" data-date="${d}" data-mark="">
+            <div class="swatch clear">×</div>
+            <span style="color:var(--color-text-tertiary)">Aucun</span>
+          </div>
+        </div>
+        <div style="border-top:0.5px solid var(--color-border-tertiary); margin-top:6px; padding-top:6px">
+          <button class="palette-manage-btn" data-action="open-palette-editor"><i class="ti ti-settings" style="font-size:11px"></i> Gérer les catégories</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPaletteEditor() {
+    if (!state.editingPalette) return '';
+    return `
+      <div class="modal-bg" data-action="close-palette-editor">
+        <div class="modal" data-action="modal-stop" style="max-width:460px">
+          <div style="font-weight:500; font-size:15px; margin-bottom:4px">Catégories du calendrier</div>
+          <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:12px">
+            Renomme les catégories, change leur couleur, ou ajoute-en. Ces marquages servent à colorer des jours dans le calendrier (fériés, vacances, RDV...).
+          </div>
+          <div id="palette-editor-rows">
+            ${DAY_PALETTE.map((p, i) => `
+              <div class="palette-edit-row">
+                <input type="color" value="${rgbToHex(p.bg)}" data-action="palette-set-bg" data-idx="${i}" title="Couleur de fond" />
+                <input type="text" class="palette-edit-name" value="${escape(p.label)}" data-action="palette-set-name" data-idx="${i}" placeholder="Nom" />
+                <button class="icon-btn" data-action="palette-delete" data-idx="${i}" title="Supprimer cette catégorie" style="color:#C62828"><i class="ti ti-trash" style="font-size:13px"></i></button>
+              </div>
+            `).join('')}
+          </div>
+          <button class="add-btn" data-action="palette-add" style="opacity:1; margin-top:8px; border:0.5px dashed var(--color-border-secondary); padding:6px 10px">
+            <i class="ti ti-plus" style="font-size:12px"></i> Ajouter une catégorie
+          </button>
+          <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end">
+            <button data-action="close-palette-editor">Fermer</button>
+          </div>
         </div>
       </div>
     `;
@@ -2326,6 +2472,7 @@
 
       ${renderModal()}
       ${renderRecurringModal()}
+      ${renderPaletteEditor()}
       ${renderPopover()}
       ${renderTooltip()}
     `;
@@ -2335,9 +2482,12 @@
 
   function attach() {
     document.querySelectorAll('[data-action]').forEach(el => {
-      if (el.tagName === 'INPUT' && (el.classList.contains('col-title') || el.classList.contains('rec-zone-title'))) {
+      if (el.tagName === 'INPUT' && (el.classList.contains('col-title') || el.classList.contains('rec-zone-title') || el.classList.contains('palette-edit-name'))) {
         el.onchange = handleAction;
         el.onblur = handleAction;
+      } else if (el.tagName === 'INPUT' && el.type === 'color' && el.dataset.action === 'palette-set-bg') {
+        el.oninput = handleAction;
+        el.onchange = handleAction;
       } else if (el.classList.contains('dash-item')) {
         // Distinction simple-clic (ouvrir onglet) / double-clic (basculer surlignage)
         // On retarde le simple-clic de 220ms pour pouvoir l'annuler si un double-clic survient
@@ -2532,6 +2682,32 @@
             render();
           }
         };
+      }
+    }
+    if (state.editingTask) {
+      const inp = document.getElementById('task-edit-input');
+      if (inp) {
+        const commit = () => {
+          const lid = inp.dataset.list;
+          const tid = inp.dataset.task;
+          const newText = inp.value.trim();
+          const list = state.lists[state.tab].find(l => l.id === lid);
+          if (list) {
+            const found = findTaskWithSiblings(list.tasks, tid);
+            if (found && newText) {
+              found.task.text = newText;
+              save();
+            }
+          }
+          state.editingTask = null;
+          render();
+        };
+        const cancel = () => { state.editingTask = null; render(); };
+        inp.onkeydown = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        };
+        inp.onblur = commit;
       }
     }
   }
@@ -2788,6 +2964,13 @@
       const list = state.lists[state.tab].find(l => l.id === listId);
       const found = findTaskWithSiblings(list.tasks, taskId);
       if (found) { found.task.done = !found.task.done; save(); render(); }
+    } else if (a === 'edit-task-text') {
+      state.editingTask = `${listId}::${taskId}`;
+      render();
+      setTimeout(() => {
+        const inp = document.getElementById('task-edit-input');
+        if (inp) { inp.focus(); inp.select(); }
+      }, 30);
     } else if (a === 'move-task') {
       const dir = e.currentTarget.dataset.dir;
       const list = state.lists[state.tab].find(l => l.id === listId);
@@ -2829,7 +3012,41 @@
       else delete state.dayMarks[date];
       state.openPopoverDate = null;
       saveDayMarks(); render();
-    } else if (a === 'toggle-recurring') {
+    } else if (a === 'open-palette-editor') {
+      state.openPopoverDate = null;
+      state.editingPalette = true;
+      render();
+    } else if (a === 'close-palette-editor') {
+      state.editingPalette = false;
+      render();
+    } else if (a === 'palette-set-name') {
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      if (DAY_PALETTE[idx]) {
+        DAY_PALETTE[idx].label = e.currentTarget.value;
+        saveDayPalette();
+      }
+    } else if (a === 'palette-set-bg') {
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      if (DAY_PALETTE[idx]) {
+        DAY_PALETTE[idx].bg = e.currentTarget.value;
+        DAY_PALETTE[idx].text = darkenForText(e.currentTarget.value);
+        saveDayPalette();
+        render();
+      }
+    } else if (a === 'palette-delete') {
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      if (DAY_PALETTE[idx]) {
+        if (confirm(`Supprimer la catégorie "${DAY_PALETTE[idx].label}" ?`)) {
+          DAY_PALETTE.splice(idx, 1);
+          saveDayPalette();
+          render();
+        }
+      }
+    } else if (a === 'palette-add') {
+      const newId = 'cat-' + Math.random().toString(36).slice(2, 7);
+      DAY_PALETTE.push({ id: newId, label: 'Nouvelle', bg: '#C4DCF5', text: '#0A3866' });
+      saveDayPalette();
+      render();
       state.view = state.view === 'recurring' ? 'columns' : 'recurring';
       render();
     } else if (a === 'new-recurring') {
