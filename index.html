@@ -1831,7 +1831,7 @@
     const diff = Math.round((d - today()) / 86400000);
     let cls = 'due-pill';
     if (diff < 0) cls += ' urgent';
-    else if (diff <= 7) cls += ' soon';
+    else if (diff <= 3) cls += ' soon';
     const label = list.dueIntermediate ? fmtDate(list.dueIntermediate) : fmtDate(list.dueFinal);
     return `<span class="${cls}">${label}</span>`;
   }
@@ -2171,7 +2171,7 @@
     const t = today();
     const todayStr = toIsoDate(t);
     const weekFromNow = new Date(t);
-    weekFromNow.setDate(weekFromNow.getDate() + 7);
+    weekFromNow.setDate(weekFromNow.getDate() + 3);
     const weekStr = toIsoDate(weekFromNow);
 
     // Tri par prochaine occurrence à l'intérieur de chaque zone
