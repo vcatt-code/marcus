@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcus — Entretiens</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ccircle%20cx='50'%20cy='50'%20r='49'%20fill='%23111111'/%3E%3Ccircle%20cx='50'%20cy='50'%20r='44'%20fill='%23ffffff'/%3E%3Ccircle%20cx='50'%20cy='50'%20r='40'%20fill='none'%20stroke='%237ec46f'%20stroke-width='13'/%3E%3Crect%20x='50'%20y='44'%20width='34'%20height='12'%20fill='%23ffffff'/%3E%3Ctext%20x='50'%20y='50'%20font-family='Arial,Helvetica,sans-serif'%20font-weight='900'%20font-size='62'%20fill='%23111111'%20text-anchor='middle'%20dominant-baseline='central'%3EM%3C/text%3E%3C/svg%3E">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.20.0/dist/tabler-icons.min.css" rel="stylesheet">
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --color-bg-primary: #FFFFFF;
+    --color-bg-secondary: #F5F4EE;
+    --color-bg-tertiary: #ECEAE2;
+    --color-text-primary: #1F1E1D;
+    --color-text-secondary: #5A5852;
+    --color-text-tertiary: #888780;
+    --color-border-tertiary: #E5E3DA;
+    --color-border-secondary: #C8C5BB;
+    --color-border-primary: #888780;
+    --color-bg-info: #E6F1FB;
+    --color-text-info: #0C447C;
+    --color-border-info: #185FA5;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: 14px;
+  }
+  .page { max-width: 1300px; margin: 0 auto; padding: 16px; }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  button:hover { background: var(--color-bg-secondary); }
+  input[type=text], input[type=date], textarea, select {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    width: 100%;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin: 8px 0 3px;
+    font-weight: 500;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+  }
+  .sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .sync-indicator.idle { background: #EAF3DE; color: #27500A; }
+  .sync-indicator.saving { background: #FAEEDA; color: #633806; }
+  .sync-indicator.error { background: #FCEBEB; color: #791F1F; }
+  .sync-indicator i { font-size: 11px; }
+  .sync-indicator.saving i { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+  /* Écran de connexion */
+  .auth-screen {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  .auth-screen h2 { font-size: 22px; margin: 12px 0 6px; }
+  .auth-screen p { color: var(--color-text-secondary); max-width: 460px; line-height: 1.6; margin: 4px 0; }
+  .signin-btn {
+    background: #FFFFFF;
+    border: 1px solid #DADCE0;
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .auth-screen .small { font-size: 11px; color: var(--color-text-tertiary); margin-top: 14px; max-width: 460px; }
+  .auth-screen .error { color: #791F1F; background: #FCEBEB; padding: 8px 12px; border-radius: 4px; margin-top: 12px; font-size: 13px; }
+
+  /* Layout deux colonnes */
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .list-panel {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 12px;
+  }
+  .list-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .list-panel-head h2 { font-size: 14px; font-weight: 600; margin: 0; }
+  .new-btn {
+    background: var(--color-bg-info);
+    color: var(--color-text-info);
+    border-color: var(--color-border-info);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .search-box { margin-bottom: 10px; }
+  .entretien-item {
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-sm);
+    padding: 9px 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    background: var(--color-bg-secondary);
+  }
+  .entretien-item:hover { background: var(--color-bg-tertiary); }
+  .entretien-item.active {
+    background: var(--color-bg-info);
+    border-color: var(--color-border-info);
+  }
+  .entretien-item .ei-title { font-weight: 600; font-size: 13px; }
+  .entretien-item .ei-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; }
+  .list-empty { font-size: 12px; color: var(--color-text-tertiary); font-style: italic; padding: 10px 4px; }
+
+  .editor-panel {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    min-height: 400px;
+  }
+  .editor-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 380px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+    gap: 8px;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 600px) { .meta-grid { grid-template-columns: 1fr; } }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border-bottom: none;
+    background: var(--color-bg-secondary);
+    margin-top: 12px;
+  }
+  .tb-btn {
+    border: 0.5px solid transparent;
+    background: transparent;
+    padding: 5px 8px;
+    border-radius: 3px;
+    min-width: 30px;
+    font-size: 13px;
+  }
+  .tb-btn:hover { background: var(--color-bg-tertiary); }
+  .tb-sep { width: 1px; background: var(--color-border-tertiary); margin: 2px 4px; }
+  .tb-color {
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    padding: 0;
+  }
+  .editor-body {
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    padding: 12px;
+    min-height: 280px;
+    outline: none;
+    line-height: 1.6;
+    font-size: 14px;
+    overflow-y: auto;
+  }
+  .editor-body:focus { border-color: var(--color-border-info); }
+  .editor-body h1, .editor-body h2, .editor-body h3 { margin: 0.6em 0 0.3em; }
+  .editor-body h1 { font-size: 20px; }
+  .editor-body h2 { font-size: 17px; }
+  .editor-body h3 { font-size: 15px; }
+  .editor-body ul, .editor-body ol { margin: 0.4em 0; padding-left: 1.5em; }
+  .editor-body p { margin: 0.4em 0; }
+  .editor-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .save-btn {
+    background: var(--color-bg-info);
+    color: var(--color-text-info);
+    border-color: var(--color-border-info);
+    font-weight: 500;
+  }
+  .del-btn { color: #A32D2D; margin-right: auto; }
+  .dirty-flag { font-size: 11px; color: #633806; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>
+    <i class="ti ti-microphone" style="font-size:20px"></i>
+    Entretiens &amp; comptes rendus
+  </h1>
+
+  <div id="app">
+    <div class="auth-screen">
+      <i class="ti ti-loader-2" style="font-size:28px; animation:spin 1s linear infinite; color:var(--color-text-secondary)"></i>
+      <p style="margin-top:1rem">Initialisation...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ====== CONFIG (identique à Marcus, mêmes autorisations OAuth) ======
+  const CLIENT_ID = '264100909833-cq4fkln2l9s50g3km9nsioe6or0bk34r.apps.googleusercontent.com';
+  const SCOPES = 'https://www.googleapis.com/auth/drive';
+  const FOLDER_NAME = 'Marcus';
+  const DATA_FILE_NAME = 'entretiens.json';
+  const MARCUS_URL = 'index.html'; // bouton retour vers Marcus
+
+  let gisInited = false, gapiInited = false;
+  let tokenClient = null, accessToken = null;
+  let folderId = null, dataFileId = null;
+
+  // ====== ÉTAT ======
+  let entretiens = [];          // [{id, date, titre, personnes, lieu, corpsHtml, updatedAt}]
+  let selectedId = null;
+  let dirty = false;
+  let saveTimer = null, saveInFlight = false, saveQueued = false;
+  let searchTerm = '';
+
+  const PALETTE = [
+    '#1F1E1D', '#C62828', '#E65100', '#EF8C00',
+    '#2E7D32', '#00897B', '#1565C0', '#3949AB',
+    '#6A3FB0', '#A0288F', '#795548', '#546E7A'
+  ];
+
+  function uid() { return 'e-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function todayIso() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function fmtDateFr(iso) {
+    if (!iso) return '';
+    const p = iso.split('-');
+    if (p.length !== 3) return iso;
+    return `${p[2]}/${p[1]}/${p[0]}`;
+  }
+
+  function setSync(status, label) {
+    const el = document.getElementById('sync-slot');
+    if (!el) return;
+    if (!status) { el.innerHTML=''; return; }
+    const icons={idle:'ti-cloud-check',saving:'ti-loader-2',error:'ti-cloud-off'};
+    el.innerHTML = `<span class="sync-indicator ${status}"><i class="ti ${icons[status]}"></i>${label||''}</span>`;
+  }
+
+  // ====== DRIVE ======
+  async function driveFindOrCreateFolder() {
+    const q = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list folder: ' + res.status);
+    const data = await res.json();
+    if (data.files && data.files.length) return data.files[0].id;
+    const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method:'POST',
+      headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+      body: JSON.stringify({name:FOLDER_NAME, mimeType:'application/vnd.google-apps.folder'})
+    });
+    if (!cr.ok) throw new Error('Drive create folder: ' + cr.status);
+    return (await cr.json()).id;
+  }
+
+  async function driveFindFile(parentId) {
+    const q = encodeURIComponent(`name='${DATA_FILE_NAME}' and '${parentId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list file: ' + res.status);
+    const data = await res.json();
+    return (data.files && data.files.length) ? data.files[0] : null;
+  }
+
+  async function driveRead() {
+    if (!dataFileId) return [];
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${dataFileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) { if (res.status===404){dataFileId=null;return [];} throw new Error('Drive read: '+res.status); }
+    try {
+      const txt = await res.text();
+      const parsed = txt ? JSON.parse(txt) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch(e) { console.warn('entretiens.json corrompu', e); return []; }
+  }
+
+  async function driveWrite() {
+    if (!accessToken) throw new Error('Not authenticated');
+    if (!folderId) folderId = await driveFindOrCreateFolder();
+    const content = JSON.stringify(entretiens, null, 2);
+    if (!dataFileId) {
+      const boundary = '----ent_' + Math.random().toString(36).slice(2);
+      const meta = { name: DATA_FILE_NAME, mimeType:'application/json', parents:[folderId] };
+      const body =
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+        JSON.stringify(meta) +
+        `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
+        content + `\r\n--${boundary}--`;
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method:'POST',
+        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'multipart/related; boundary='+boundary},
+        body
+      });
+      if (!res.ok) throw new Error('Drive create: ' + res.status);
+      dataFileId = (await res.json()).id;
+    } else {
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${dataFileId}?uploadType=media`, {
+        method:'PATCH',
+        headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+        body: content
+      });
+      if (!res.ok) throw new Error('Drive update: ' + res.status);
+    }
+  }
+
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    setSync('saving','enregistrement...');
+    saveTimer = setTimeout(doSave, 800);
+  }
+  async function doSave() {
+    if (saveInFlight) { saveQueued = true; return; }
+    saveInFlight = true;
+    try {
+      await driveWrite();
+      setSync('idle','à jour');
+    } catch(e) {
+      console.error('Sauvegarde échouée', e);
+      setSync('error','erreur sync');
+    } finally {
+      saveInFlight = false;
+      if (saveQueued) { saveQueued=false; scheduleSave(); }
+    }
+  }
+
+  // ====== RENDU ======
+  function render() {
+    const app = document.getElementById('app');
+    const sel = entretiens.find(e => e.id === selectedId) || null;
+    const filtered = entretiens
+      .filter(e => {
+        if (!searchTerm) return true;
+        const s = searchTerm.toLowerCase();
+        return (e.titre||'').toLowerCase().includes(s)
+            || (e.personnes||'').toLowerCase().includes(s)
+            || (e.lieu||'').toLowerCase().includes(s)
+            || (e.corpsHtml||'').toLowerCase().includes(s);
+      })
+      .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    app.innerHTML = `
+      <div class="topbar">
+        <button class="nav-btn" id="back-marcus"><i class="ti ti-arrow-left"></i> Retour à Marcus</button>
+        <span id="sync-slot"></span>
+        <span id="user-slot" style="margin-left:auto; font-size:12px; color:var(--color-text-secondary)"></span>
+      </div>
+      <div class="layout">
+        <div class="list-panel">
+          <div class="list-panel-head">
+            <h2>Entretiens (${entretiens.length})</h2>
+            <button class="new-btn" id="new-ent"><i class="ti ti-plus"></i> Nouveau</button>
+          </div>
+          <div class="search-box">
+            <input type="text" id="search" placeholder="Rechercher..." value="${escapeHtml(searchTerm)}" />
+          </div>
+          ${filtered.length === 0
+            ? `<div class="list-empty">${entretiens.length===0 ? 'Aucun entretien. Cliquez sur « Nouveau ».' : 'Aucun résultat.'}</div>`
+            : filtered.map(e => `
+              <div class="entretien-item ${e.id===selectedId?'active':''}" data-open="${e.id}">
+                <div class="ei-title">${escapeHtml(e.titre || 'Sans titre')}</div>
+                <div class="ei-meta">
+                  ${fmtDateFr(e.date)}${e.lieu ? ' · ' + escapeHtml(e.lieu) : ''}
+                  ${e.personnes ? '<br>' + escapeHtml(e.personnes) : ''}
+                </div>
+              </div>
+            `).join('')}
+        </div>
+
+        <div class="editor-panel">
+          ${sel ? renderEditor(sel) : `
+            <div class="editor-empty">
+              <i class="ti ti-file-text" style="font-size:32px; opacity:0.4"></i>
+              <div>Sélectionnez un entretien à gauche<br>ou créez-en un nouveau.</div>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('back-marcus').onclick = () => {
+      if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+      window.location.href = MARCUS_URL;
+    };
+    document.getElementById('new-ent').onclick = createNew;
+    const sb = document.getElementById('search');
+    if (sb) sb.oninput = (ev) => { searchTerm = ev.target.value; render(); restoreSearchFocus(); };
+    document.querySelectorAll('[data-open]').forEach(el => {
+      el.onclick = () => openEntretien(el.dataset.open);
+    });
+    if (sel) wireEditor(sel);
+    setSync('idle','à jour');
+    const us = document.getElementById('user-slot');
+    if (us && window._userEmail) us.textContent = window._userEmail;
+  }
+
+  function restoreSearchFocus() {
+    const sb = document.getElementById('search');
+    if (sb) { sb.focus(); sb.setSelectionRange(sb.value.length, sb.value.length); }
+  }
+
+  function renderEditor(e) {
+    return `
+      <div class="meta-grid">
+        <div>
+          <label>Date</label>
+          <input type="date" id="f-date" value="${e.date || todayIso()}" />
+        </div>
+        <div>
+          <label>Lieu</label>
+          <input type="text" id="f-lieu" value="${escapeHtml(e.lieu||'')}" placeholder="Salle, ville, visio..." />
+        </div>
+      </div>
+      <label>Titre</label>
+      <input type="text" id="f-titre" value="${escapeHtml(e.titre||'')}" placeholder="Objet de l'entretien" />
+      <label>Personnes présentes</label>
+      <input type="text" id="f-personnes" value="${escapeHtml(e.personnes||'')}" placeholder="Noms séparés par des virgules" />
+
+      <label>Compte rendu</label>
+      <div class="toolbar" id="toolbar">
+        <button class="tb-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+        <button class="tb-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+        <button class="tb-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-block="h1" title="Titre 1">T1</button>
+        <button class="tb-btn" data-block="h2" title="Titre 2">T2</button>
+        <button class="tb-btn" data-block="h3" title="Titre 3">T3</button>
+        <button class="tb-btn" data-block="p" title="Paragraphe normal">¶</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-cmd="insertUnorderedList" title="Liste à puces"><i class="ti ti-list"></i></button>
+        <button class="tb-btn" data-cmd="insertOrderedList" title="Liste numérotée"><i class="ti ti-list-numbers"></i></button>
+        <div class="tb-sep"></div>
+        ${PALETTE.map(c => `<button class="tb-color" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('')}
+        <div class="tb-sep"></div>
+        <button class="tb-btn" data-cmd="removeFormat" title="Effacer la mise en forme"><i class="ti ti-clear-formatting"></i></button>
+      </div>
+      <div class="editor-body" id="editor" contenteditable="true">${e.corpsHtml || ''}</div>
+
+      <div class="editor-actions">
+        ${dirty ? '<span class="dirty-flag"><i class="ti ti-pencil" style="font-size:11px"></i> Modifications non enregistrées</span>' : ''}
+        <button class="del-btn" id="del-ent"><i class="ti ti-trash" style="font-size:13px"></i> Supprimer</button>
+        <button id="cancel-ent">Annuler les modifs</button>
+        <button class="save-btn" id="save-ent"><i class="ti ti-device-floppy" style="font-size:13px"></i> Enregistrer</button>
+      </div>
+    `;
+  }
+
+  function wireEditor(e) {
+    const markDirty = () => {
+      if (!dirty) { dirty = true; const f=document.querySelector('.editor-actions'); }
+      const flag = document.querySelector('.dirty-flag');
+      if (!flag) {
+        const act = document.querySelector('.editor-actions');
+        if (act) act.insertAdjacentHTML('afterbegin','<span class="dirty-flag"><i class="ti ti-pencil" style="font-size:11px"></i> Modifications non enregistrées</span>');
+      }
+    };
+    ['f-date','f-lieu','f-titre','f-personnes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = markDirty;
+    });
+    const editor = document.getElementById('editor');
+    if (editor) editor.oninput = markDirty;
+
+    document.querySelectorAll('#toolbar [data-cmd]').forEach(b => {
+      b.onmousedown = (ev) => {
+        ev.preventDefault();
+        document.execCommand(b.dataset.cmd, false, null);
+        markDirty();
+      };
+    });
+    document.querySelectorAll('#toolbar [data-block]').forEach(b => {
+      b.onmousedown = (ev) => {
+        ev.preventDefault();
+        document.execCommand('formatBlock', false, b.dataset.block);
+        markDirty();
+      };
+    });
+    document.querySelectorAll('#toolbar [data-color]').forEach(b => {
+      b.onmousedown = (ev) => {
+        ev.preventDefault();
+        document.execCommand('foreColor', false, b.dataset.color);
+        markDirty();
+      };
+    });
+
+    document.getElementById('save-ent').onclick = () => saveCurrent(e.id);
+    document.getElementById('cancel-ent').onclick = () => {
+      if (dirty && !confirm('Annuler les modifications non enregistrées ?')) return;
+      dirty = false; render();
+    };
+    document.getElementById('del-ent').onclick = () => {
+      if (!confirm(`Supprimer définitivement l'entretien « ${e.titre||'Sans titre'} » ?`)) return;
+      entretiens = entretiens.filter(x => x.id !== e.id);
+      selectedId = null; dirty = false;
+      render(); scheduleSave();
+    };
+  }
+
+  function collectEditor() {
+    return {
+      date: document.getElementById('f-date')?.value || todayIso(),
+      lieu: document.getElementById('f-lieu')?.value || '',
+      titre: document.getElementById('f-titre')?.value || '',
+      personnes: document.getElementById('f-personnes')?.value || '',
+      corpsHtml: document.getElementById('editor')?.innerHTML || ''
+    };
+  }
+
+  function saveCurrent(id) {
+    const idx = entretiens.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const data = collectEditor();
+    entretiens[idx] = { ...entretiens[idx], ...data, updatedAt: new Date().toISOString() };
+    dirty = false;
+    render();
+    scheduleSave();
+  }
+
+  function createNew() {
+    if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+    const e = {
+      id: uid(),
+      date: todayIso(),
+      titre: '',
+      personnes: '',
+      lieu: '',
+      corpsHtml: '',
+      updatedAt: new Date().toISOString()
+    };
+    entretiens.push(e);
+    selectedId = e.id;
+    dirty = false;
+    render();
+    // place le focus sur le titre pour démarrer vite
+    setTimeout(() => { const t=document.getElementById('f-titre'); if(t) t.focus(); }, 40);
+    scheduleSave();
+  }
+
+  function openEntretien(id) {
+    if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+    selectedId = id;
+    dirty = false;
+    render();
+  }
+
+  // ====== AUTH ======
+  function showAuth(err) {
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <div class="auth-screen">
+        <i class="ti ti-microphone" style="font-size:34px; color:#185FA5"></i>
+        <h2>Entretiens &amp; comptes rendus</h2>
+        <p>Module périphérique de Marcus. Vos comptes rendus sont stockés dans votre Google Drive (fichier <strong>Marcus/entretiens.json</strong>).</p>
+        <p>Connectez-vous avec le même compte Google que Marcus.</p>
+        <button class="signin-btn" id="signin">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="">
+          Se connecter avec Google
+        </button>
+        ${err ? `<div class="error">${escapeHtml(err)}</div>` : ''}
+        <p class="small">Au premier accès, Google peut afficher « Application non vérifiée » : Paramètres avancés → Continuer. Mêmes autorisations que Marcus.</p>
+        <p class="small"><a href="${MARCUS_URL}" style="color:var(--color-text-info)">← Retour à Marcus</a></p>
+      </div>
+    `;
+    document.getElementById('signin').onclick = () => {
+      if (!tokenClient) { showAuth('Initialisation en cours, réessayez dans 2 secondes.'); return; }
+      tokenClient.requestAccessToken();
+    };
+  }
+
+  function initGapi() {
+    gapi.load('client', async () => {
+      try { await gapi.client.init({}); gapiInited = true; maybeStart(); }
+      catch(e) { console.error('gapi init', e); }
+    });
+  }
+  function initGis() {
+    if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGis, 200); return; }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES + ' https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+      callback: async (resp) => {
+        if (resp.error) { showAuth('Erreur de connexion : ' + resp.error); return; }
+        accessToken = resp.access_token;
+        await onAuth();
+      }
+    });
+    gisInited = true; maybeStart();
+  }
+  function maybeStart() { if (gapiInited && gisInited) showAuth(null); }
+
+  async function onAuth() {
+    try {
+      try {
+        const ur = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers:{Authorization:'Bearer '+accessToken} });
+        if (ur.ok) { const ui = await ur.json(); window._userEmail = ui.email || ''; }
+      } catch(_) {}
+      folderId = await driveFindOrCreateFolder();
+      const f = await driveFindFile(folderId);
+      if (f) { dataFileId = f.id; entretiens = await driveRead(); }
+      else { entretiens = []; }
+      render();
+    } catch(e) {
+      console.error('post-auth', e);
+      showAuth('Erreur de chargement : ' + e.message);
+    }
+  }
+
+  function bootstrap() {
+    if (typeof gapi !== 'undefined') initGapi(); else setTimeout(bootstrap, 200);
+    initGis();
+  }
+
+  window.addEventListener('beforeunload', (ev) => {
+    if (dirty) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  bootstrap();
+})();
+</script>
+</body>
+</html>
