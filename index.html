@@ -2486,7 +2486,7 @@
     const pct = tm.totalSec > 0 ? Math.max(0, Math.min(100, (tm.remainingSec / tm.totalSec) * 100)) : 0;
     const display = tm.editing
       ? `<input type="text" class="timer-edit-input" id="timer-edit-input" value="${fmtTimer(tm.remainingSec)}" placeholder="HH:MM:SS" />`
-      : `<div class="timer-display ${tm.finished ? 'finished' : ''}" data-action="timer-edit" title="Double-clic pour régler la durée">${fmtTimer(tm.remainingSec)}</div>`;
+      : `<div class="timer-display ${tm.finished ? 'finished' : ''}" data-action="timer-edit" title="Cliquer pour régler la durée">${fmtTimer(tm.remainingSec)}</div>`;
     return `
       <div class="timer-panel">
         ${display}
@@ -2643,10 +2643,12 @@
         el.oninput = handleAction;
         el.onchange = handleAction;
       } else if (el.classList.contains('timer-display')) {
-        // Double-clic uniquement pour éditer la durée
-        el.ondblclick = () => {
-          if (window.getSelection) window.getSelection().removeAllRanges();
-          handleAction({ currentTarget: el, stopPropagation: function(){}, preventDefault: function(){} });
+        // Simple clic pour éditer la durée (plus fiable que le double-clic)
+        el.onclick = () => {
+          state.timer.editing = true;
+          state.timer.running = false;
+          stopTimerTick();
+          render();
         };
       } else if (el.classList.contains('dash-item')) {
         // Distinction simple-clic (ouvrir onglet) / double-clic (basculer surlignage)
