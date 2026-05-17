@@ -2646,7 +2646,7 @@
         // Double-clic uniquement pour éditer la durée
         el.ondblclick = () => {
           if (window.getSelection) window.getSelection().removeAllRanges();
-          handleAction({ currentTarget: el });
+          handleAction({ currentTarget: el, stopPropagation: function(){}, preventDefault: function(){} });
         };
       } else if (el.classList.contains('dash-item')) {
         // Distinction simple-clic (ouvrir onglet) / double-clic (basculer surlignage)
