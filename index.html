@@ -1908,10 +1908,12 @@
     const f = document.getElementById('m-final');
     const i = document.getElementById('m-inter');
     const c = document.getElementById('m-col');
+    const tb = document.getElementById('m-tab');
     if (t) state.editingList.title = t.value;
     if (f) state.editingList.dueFinal = f.value;
     if (i) state.editingList.dueIntermediate = i.value;
     if (c) state.editingList.columnId = c.value;
+    if (tb) state.editingList._targetTab = tb.value;
   }
 
   function getNextDueDate(list) {
@@ -2173,6 +2175,12 @@
           <div style="font-weight:500; font-size:15px; margin-bottom:8px">${l.id ? 'Modifier la liste' : 'Nouvelle liste'}</div>
           <label>Titre</label>
           <input type="text" id="m-title" value="${escape(l.title || '')}" />
+          ${l.id ? `
+          <label>Onglet</label>
+          <select id="m-tab">
+            ${TABS.map(t => `<option value="${t.id}" ${t.id === (l._currentTab || state.tab) ? 'selected' : ''}>${escape(t.label)}</option>`).join('')}
+          </select>
+          ` : ''}
           <label>Colonne</label>
           <select id="m-col">
             ${cols.map(c => `<option value="${c.id}" ${c.id === colId ? 'selected' : ''}>${escape(c.name)}</option>`).join('')}
@@ -3061,7 +3069,12 @@
       render();
     } else if (a === 'edit-list') {
       const list = state.lists[state.tab].find(l => l.id === listId);
-      if (list) { state.editingList = JSON.parse(JSON.stringify(list)); state.confirmDelete = false; render(); }
+      if (list) {
+        state.editingList = JSON.parse(JSON.stringify(list));
+        state.editingList._currentTab = state.tab;
+        state.confirmDelete = false;
+        render();
+      }
     } else if (a === 'pin-list') {
       const list = state.lists[state.tab].find(l => l.id === listId);
       if (list) { list.pinned = !list.pinned; save(); render(); }
@@ -3097,10 +3110,33 @@
       syncModalInputsToState();
       const titleVal = (state.editingList.title || '').trim();
       if (!titleVal) return;
+      const srcTab = state.editingList._currentTab || state.tab;
+      const targetTab = state.editingList._targetTab || srcTab;
       const data = { ...state.editingList, title: titleVal };
+      // Nettoyage des champs internes avant stockage
+      delete data._currentTab;
+      delete data._targetTab;
+
       if (data.id) {
-        const idx = state.lists[state.tab].findIndex(l => l.id === data.id);
-        if (idx >= 0) state.lists[state.tab][idx] = data;
+        if (targetTab !== srcTab && TAB_IDS.includes(targetTab)) {
+          // Déplacement vers un autre onglet
+          // 1. Retirer de l'onglet source
+          state.lists[srcTab] = (state.lists[srcTab] || []).filter(l => l.id !== data.id);
+          // 2. Réassigner une colonne valide dans l'onglet cible
+          //    (les IDs de colonnes diffèrent d'un onglet à l'autre)
+          const targetCols = state.columns[targetTab] || [];
+          data.columnId = targetCols[0]?.id || '';
+          // 3. Ajouter à l'onglet cible
+          state.lists[targetTab] = state.lists[targetTab] || [];
+          state.lists[targetTab].push(data);
+          // 4. Suivre la liste : basculer l'affichage sur l'onglet cible
+          state.tab = targetTab;
+          flashWarning(`Liste déplacée vers ${targetTab}`);
+        } else {
+          // Mise à jour simple, même onglet
+          const idx = (state.lists[srcTab] || []).findIndex(l => l.id === data.id);
+          if (idx >= 0) state.lists[srcTab][idx] = data;
+        }
       } else {
         data.id = uid(); data.tasks = []; data.pinned = false;
         state.lists[state.tab].push(data);
