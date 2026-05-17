@@ -2609,6 +2609,9 @@
           `).join('');
         })()}
         <div style="flex:1"></div>
+        <button data-action="open-entretiens" title="Entretiens et comptes rendus" style="display:inline-flex; align-items:center; gap:5px">
+          <i class="ti ti-microphone" style="font-size:14px"></i> Entretiens
+        </button>
         <button class="recurring-btn ${state.view === 'recurring' ? 'active' : ''}" data-action="toggle-recurring" title="Tâches récurrentes">
           <i class="ti ti-repeat"></i>
         </button>
@@ -3291,6 +3294,8 @@
       state.timer.running = false;
       stopTimerTick();
       render();
+    } else if (a === 'open-entretiens') {
+      window.location.href = 'entretiens.html';
     } else if (a === 'toggle-recurring') {
       state.view = state.view === 'recurring' ? 'columns' : 'recurring';
       render();
