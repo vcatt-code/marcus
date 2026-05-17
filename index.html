@@ -496,18 +496,125 @@
   .due-pill.soon { background: #FAEEDA; color: #633806; }
 
   /* Dashboard : 4 zones de remontée */
+  .dash-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    margin-bottom: 1.25rem;
+  }
   .dash-wrap {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
-    margin-bottom: 1.25rem;
+    flex: 1;
+    min-width: 0;
   }
   @media (max-width: 1100px) {
     .dash-wrap { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 700px) {
+    .dash-row { flex-direction: column; }
     .dash-wrap { grid-template-columns: 1fr; }
   }
+
+  /* Minuteur */
+  .timer-panel {
+    background: var(--color-bg-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 10px;
+    width: 120px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  @media (max-width: 700px) {
+    .timer-panel { width: 100%; flex-direction: row; align-items: center; }
+  }
+  .timer-display {
+    font-family: 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--color-text-primary);
+    background: var(--color-bg-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-sm);
+    padding: 8px 4px;
+    cursor: pointer;
+    user-select: none;
+    letter-spacing: 0.5px;
+  }
+  .timer-display:hover { background: var(--color-bg-tertiary); }
+  .timer-display.finished {
+    animation: timer-blink 0.8s steps(1) infinite;
+  }
+  @keyframes timer-blink {
+    50% { background: #C62828; color: #FFFFFF; border-color: #C62828; }
+  }
+  .timer-edit-input {
+    font-family: 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+    padding: 8px 4px;
+    border: 1px solid var(--color-border-info);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    outline: none;
+    box-sizing: border-box;
+  }
+  .timer-body {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+  }
+  .timer-gauge {
+    width: 22px;
+    flex-shrink: 0;
+    background: var(--color-bg-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    position: relative;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .timer-gauge-fill {
+    background: #1565C0;
+    width: 100%;
+    transition: height 0.3s linear;
+  }
+  .timer-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+  }
+  @media (max-width: 700px) {
+    .timer-gauge { min-height: 44px; width: 44px; }
+    .timer-buttons { flex-direction: row; }
+  }
+  .timer-btn {
+    background: var(--color-bg-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    padding: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    transition: all 0.15s;
+  }
+  .timer-btn:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+  .timer-btn.active { background: #1565C0; color: #FFFFFF; border-color: #1565C0; }
+  .timer-btn i { font-size: 15px; }
   .dash-zone {
     background: var(--color-bg-primary);
     border: 0.5px solid var(--color-border-tertiary);
@@ -1241,6 +1348,13 @@
     addingTaskTo: null,
     editingTask: null, // `${listId}::${taskId}` quand une tâche est en cours d'édition
     editingPalette: false,
+    timer: {
+      totalSec: 15 * 60,   // durée configurée
+      remainingSec: 15 * 60,
+      running: false,
+      finished: false,
+      editing: false
+    },
     openPopoverDate: null,
     popoverPos: null,
     tooltip: null,
@@ -2359,9 +2473,48 @@
     return false;
   }
 
+  function fmtTimer(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function renderTimer() {
+    const tm = state.timer;
+    const pct = tm.totalSec > 0 ? Math.max(0, Math.min(100, (tm.remainingSec / tm.totalSec) * 100)) : 0;
+    const display = tm.editing
+      ? `<input type="text" class="timer-edit-input" id="timer-edit-input" value="${fmtTimer(tm.remainingSec)}" placeholder="HH:MM:SS" />`
+      : `<div class="timer-display ${tm.finished ? 'finished' : ''}" data-action="timer-edit" title="Double-clic pour régler la durée">${fmtTimer(tm.remainingSec)}</div>`;
+    return `
+      <div class="timer-panel">
+        ${display}
+        <div class="timer-body">
+          <div class="timer-gauge">
+            <div class="timer-gauge-fill" style="height:${pct}%"></div>
+          </div>
+          <div class="timer-buttons">
+            <button class="timer-btn ${tm.running ? 'active' : ''}" data-action="timer-play" title="Démarrer">
+              <i class="ti ti-player-play-filled"></i>
+            </button>
+            <button class="timer-btn" data-action="timer-pause" title="Pause">
+              <i class="ti ti-player-pause-filled"></i>
+            </button>
+            <button class="timer-btn" data-action="timer-stop" title="Arrêter et réinitialiser">
+              <i class="ti ti-player-stop-filled"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderDashboard() {
     return `
-      <div class="dash-wrap">
+      <div class="dash-row">
+        ${renderTimer()}
+        <div class="dash-wrap">
         ${DASH_ZONES.map(zone => {
           // Récupérer toutes les listes des tabs de cette zone qui doivent remonter
           const items = [];
@@ -2398,6 +2551,7 @@
             </div>
           `;
         }).join('')}
+        </div>
       </div>
     `;
   }
@@ -2488,6 +2642,12 @@
       } else if (el.tagName === 'INPUT' && el.type === 'color' && el.dataset.action === 'palette-set-bg') {
         el.oninput = handleAction;
         el.onchange = handleAction;
+      } else if (el.classList.contains('timer-display')) {
+        // Double-clic uniquement pour éditer la durée
+        el.ondblclick = () => {
+          if (window.getSelection) window.getSelection().removeAllRanges();
+          handleAction({ currentTarget: el });
+        };
       } else if (el.classList.contains('dash-item')) {
         // Distinction simple-clic (ouvrir onglet) / double-clic (basculer surlignage)
         // On retarde le simple-clic de 220ms pour pouvoir l'annuler si un double-clic survient
@@ -2708,6 +2868,29 @@
           else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
         };
         inp.onblur = commit;
+      }
+    }
+    if (state.timer.editing) {
+      const tinp = document.getElementById('timer-edit-input');
+      if (tinp) {
+        setTimeout(() => { tinp.focus(); tinp.select(); }, 30);
+        const commitT = () => {
+          const sec = parseTimerInput(tinp.value);
+          const tm = state.timer;
+          if (sec !== null && sec > 0) {
+            tm.totalSec = sec;
+            tm.remainingSec = sec;
+            tm.finished = false;
+          }
+          tm.editing = false;
+          render();
+        };
+        const cancelT = () => { state.timer.editing = false; render(); };
+        tinp.onkeydown = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitT(); }
+          else if (e.key === 'Escape') { e.preventDefault(); cancelT(); }
+        };
+        tinp.onblur = commitT;
       }
     }
   }
@@ -3046,6 +3229,29 @@
       const newId = 'cat-' + Math.random().toString(36).slice(2, 7);
       DAY_PALETTE.push({ id: newId, label: 'Nouvelle', bg: '#C4DCF5', text: '#0A3866' });
       saveDayPalette();
+      render();
+    } else if (a === 'timer-play') {
+      const tm = state.timer;
+      if (tm.remainingSec <= 0) { tm.remainingSec = tm.totalSec; }
+      tm.finished = false;
+      tm.running = true;
+      startTimerTick();
+      render();
+    } else if (a === 'timer-pause') {
+      state.timer.running = false;
+      stopTimerTick();
+      render();
+    } else if (a === 'timer-stop') {
+      const tm = state.timer;
+      tm.running = false;
+      tm.finished = false;
+      tm.remainingSec = tm.totalSec;
+      stopTimerTick();
+      render();
+    } else if (a === 'timer-edit') {
+      state.timer.editing = true;
+      state.timer.running = false;
+      stopTimerTick();
       render();
     } else if (a === 'toggle-recurring') {
       state.view = state.view === 'recurring' ? 'columns' : 'recurring';
@@ -3928,6 +4134,69 @@
         }
       };
     }
+  }
+
+  // ============ MINUTEUR : tick ============
+  let timerInterval = null;
+
+  function startTimerTick() {
+    stopTimerTick();
+    timerInterval = setInterval(() => {
+      const tm = state.timer;
+      if (!tm.running) { stopTimerTick(); return; }
+      tm.remainingSec -= 1;
+      if (tm.remainingSec <= 0) {
+        tm.remainingSec = 0;
+        tm.running = false;
+        tm.finished = true;
+        stopTimerTick();
+        render();
+        return;
+      }
+      // Mise à jour ciblée pour éviter de re-render toute la page chaque seconde
+      updateTimerDisplayOnly();
+    }, 1000);
+  }
+
+  function stopTimerTick() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  function updateTimerDisplayOnly() {
+    const tm = state.timer;
+    const disp = document.querySelector('.timer-display');
+    if (disp && !tm.editing) disp.textContent = fmtTimer(tm.remainingSec);
+    const fill = document.querySelector('.timer-gauge-fill');
+    if (fill) {
+      const pct = tm.totalSec > 0 ? Math.max(0, Math.min(100, (tm.remainingSec / tm.totalSec) * 100)) : 0;
+      fill.style.height = pct + '%';
+    }
+  }
+
+  // Parse une saisie de durée : accepte "HH:MM:SS", "MM:SS", "MM", "90" (minutes), "1h30"
+  function parseTimerInput(str) {
+    str = (str || '').trim().toLowerCase();
+    if (!str) return null;
+    // Format h/m : "1h30", "25m", "1h"
+    let hm = str.match(/^(\d+)\s*h\s*(\d+)?$/);
+    if (hm) {
+      const h = parseInt(hm[1], 10);
+      const m = hm[2] ? parseInt(hm[2], 10) : 0;
+      return h * 3600 + m * 60;
+    }
+    let mOnly = str.match(/^(\d+)\s*m$/);
+    if (mOnly) return parseInt(mOnly[1], 10) * 60;
+    // Format à deux-points
+    if (str.indexOf(':') !== -1) {
+      const parts = str.split(':').map(p => parseInt(p, 10) || 0);
+      if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+      if (parts.length === 2) return parts[0]*60 + parts[1];
+      if (parts.length === 1) return parts[0]*60;
+    }
+    // Nombre seul = minutes
+    const n = parseInt(str, 10);
+    if (!isNaN(n)) return n * 60;
+    return null;
   }
 
   function signOut() {
