@@ -1353,7 +1353,8 @@
       remainingSec: 15 * 60,
       running: false,
       finished: false,
-      editing: false
+      editing: false,
+      endAt: null          // timestamp (ms) de fin réelle quand le minuteur tourne
     },
     openPopoverDate: null,
     popoverPos: null,
@@ -2656,8 +2657,11 @@
       } else if (el.classList.contains('timer-display')) {
         // Simple clic pour éditer la durée (plus fiable que le double-clic)
         el.onclick = () => {
-          state.timer.editing = true;
-          state.timer.running = false;
+          const tm = state.timer;
+          if (tm.endAt) tm.remainingSec = Math.max(0, Math.round((tm.endAt - Date.now()) / 1000));
+          tm.editing = true;
+          tm.running = false;
+          tm.endAt = null;
           stopTimerTick();
           render();
         };
@@ -3276,10 +3280,16 @@
       if (tm.remainingSec <= 0) { tm.remainingSec = tm.totalSec; }
       tm.finished = false;
       tm.running = true;
+      // On fixe l'heure de fin absolue à partir du temps restant courant
+      tm.endAt = Date.now() + tm.remainingSec * 1000;
       startTimerTick();
       render();
     } else if (a === 'timer-pause') {
-      state.timer.running = false;
+      const tm = state.timer;
+      // On fige le temps restant à l'instant de la pause
+      if (tm.endAt) tm.remainingSec = Math.max(0, Math.round((tm.endAt - Date.now()) / 1000));
+      tm.running = false;
+      tm.endAt = null;
       stopTimerTick();
       render();
     } else if (a === 'timer-stop') {
@@ -3287,11 +3297,15 @@
       tm.running = false;
       tm.finished = false;
       tm.remainingSec = tm.totalSec;
+      tm.endAt = null;
       stopTimerTick();
       render();
     } else if (a === 'timer-edit') {
-      state.timer.editing = true;
-      state.timer.running = false;
+      const tm = state.timer;
+      if (tm.endAt) tm.remainingSec = Math.max(0, Math.round((tm.endAt - Date.now()) / 1000));
+      tm.editing = true;
+      tm.running = false;
+      tm.endAt = null;
       stopTimerTick();
       render();
     } else if (a === 'open-entretiens') {
@@ -4109,6 +4123,15 @@
           return;
         }
         accessToken = resp.access_token;
+        // Partage du jeton entre les pages (Marcus <-> Entretiens) via sessionStorage.
+        // expires_in est en secondes ; on retire 60s de marge de sécurité.
+        try {
+          const ttl = (parseInt(resp.expires_in, 10) || 3600) - 60;
+          sessionStorage.setItem('marcus_gtoken', JSON.stringify({
+            token: resp.access_token,
+            expiry: Date.now() + ttl * 1000
+          }));
+        } catch (e) { console.warn('sessionStorage indisponible', e); }
         await onAuthenticated();
       }
     });
@@ -4116,9 +4139,33 @@
     maybeStartApp();
   }
 
+  function getStoredToken() {
+    try {
+      const raw = sessionStorage.getItem('marcus_gtoken');
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (obj && obj.token && obj.expiry && Date.now() < obj.expiry) return obj.token;
+      sessionStorage.removeItem('marcus_gtoken');
+      return null;
+    } catch (e) { return null; }
+  }
+
   function maybeStartApp() {
     if (!gapiInited || !gisInited) return;
-    // Tout est prêt : afficher l'écran de login
+    // Si un jeton valide est déjà partagé (navigation depuis la page Entretiens
+    // dans le même onglet), on l'utilise et on saute l'écran de connexion.
+    const stored = getStoredToken();
+    if (stored) {
+      accessToken = stored;
+      onAuthenticated().catch(e => {
+        console.warn('Jeton stocké invalide, retour à la connexion', e);
+        try { sessionStorage.removeItem('marcus_gtoken'); } catch(_) {}
+        accessToken = null;
+        showAuthScreen(null);
+      });
+      return;
+    }
+    // Sinon, écran de login classique
     showAuthScreen(null);
   }
 
@@ -4186,23 +4233,46 @@
     stopTimerTick();
     timerInterval = setInterval(() => {
       const tm = state.timer;
-      if (!tm.running) { stopTimerTick(); return; }
-      tm.remainingSec -= 1;
-      if (tm.remainingSec <= 0) {
+      if (!tm.running || !tm.endAt) { stopTimerTick(); return; }
+      // Décompte basé sur l'horloge réelle : robuste même si l'onglet a été
+      // mis en arrière-plan (setInterval suspendu) car on recalcule à partir
+      // du timestamp de fin absolu, pas d'un comptage de ticks.
+      const remainMs = tm.endAt - Date.now();
+      tm.remainingSec = Math.max(0, Math.round(remainMs / 1000));
+      if (remainMs <= 0) {
         tm.remainingSec = 0;
         tm.running = false;
         tm.finished = true;
+        tm.endAt = null;
         stopTimerTick();
         render();
         return;
       }
-      // Mise à jour ciblée pour éviter de re-render toute la page chaque seconde
       updateTimerDisplayOnly();
-    }, 1000);
+    }, 250);
   }
 
   function stopTimerTick() {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  // Resynchronise le minuteur quand l'onglet redevient visible : si le temps
+  // est écoulé pendant que l'onglet était en arrière-plan, on bascule en "fini".
+  function resyncTimerOnVisible() {
+    const tm = state.timer;
+    if (!tm.running || !tm.endAt) return;
+    const remainMs = tm.endAt - Date.now();
+    if (remainMs <= 0) {
+      tm.remainingSec = 0;
+      tm.running = false;
+      tm.finished = true;
+      tm.endAt = null;
+      stopTimerTick();
+      render();
+    } else {
+      tm.remainingSec = Math.max(0, Math.round(remainMs / 1000));
+      updateTimerDisplayOnly();
+    }
   }
 
   function updateTimerDisplayOnly() {
@@ -4251,6 +4321,7 @@
     folderId = null;
     dataFileId = null;
     memoryStore = {};
+    try { sessionStorage.removeItem('marcus_gtoken'); } catch(_) {}
     location.reload();
   }
 
@@ -4260,6 +4331,14 @@
     else setTimeout(bootstrap, 200);
     initGis();
   }
+
+  // Quand l'onglet redevient visible, on resynchronise immédiatement le minuteur
+  // (le navigateur a pu suspendre setInterval pendant que l'onglet était caché).
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) resyncTimerOnVisible();
+  });
+  window.addEventListener('focus', resyncTimerOnVisible);
+
   bootstrap();
 })();
 </script>
