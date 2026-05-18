@@ -678,12 +678,45 @@
       callback: async (resp) => {
         if (resp.error) { showAuth('Erreur de connexion : ' + resp.error); return; }
         accessToken = resp.access_token;
+        try {
+          const ttl = (parseInt(resp.expires_in, 10) || 3600) - 60;
+          sessionStorage.setItem('marcus_gtoken', JSON.stringify({
+            token: resp.access_token,
+            expiry: Date.now() + ttl * 1000
+          }));
+        } catch (e) { console.warn('sessionStorage indisponible', e); }
         await onAuth();
       }
     });
     gisInited = true; maybeStart();
   }
-  function maybeStart() { if (gapiInited && gisInited) showAuth(null); }
+  function getStoredToken() {
+    try {
+      const raw = sessionStorage.getItem('marcus_gtoken');
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (obj && obj.token && obj.expiry && Date.now() < obj.expiry) return obj.token;
+      sessionStorage.removeItem('marcus_gtoken');
+      return null;
+    } catch (e) { return null; }
+  }
+
+  function maybeStart() {
+    if (!gapiInited || !gisInited) return;
+    // Réutilisation d'un jeton partagé (navigation depuis Marcus dans le même onglet)
+    const stored = getStoredToken();
+    if (stored) {
+      accessToken = stored;
+      onAuth().catch(e => {
+        console.warn('Jeton stocké invalide', e);
+        try { sessionStorage.removeItem('marcus_gtoken'); } catch(_) {}
+        accessToken = null;
+        showAuth(null);
+      });
+      return;
+    }
+    showAuth(null);
+  }
 
   async function onAuth() {
     try {
