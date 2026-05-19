@@ -3882,6 +3882,11 @@
   function openInboxPopup() {
     const existing = document.getElementById('inbox-popup-bg');
     if (existing) existing.remove();
+    // Cases cochées par défaut : on présélectionne toutes les requêtes,
+    // l'utilisateur décoche celles qu'il ne veut pas appliquer.
+    inboxRequests.forEach(r => {
+      if (inboxChecks[r.fileId] === undefined) inboxChecks[r.fileId] = true;
+    });
     const bg = document.createElement('div');
     bg.id = 'inbox-popup-bg';
     bg.className = 'inbox-popup-bg';
@@ -3894,8 +3899,7 @@
         </div>
         <div class="inbox-popup-body">
           <p style="font-size:12px; color:var(--color-text-secondary); margin: 0 0 12px">
-            Cochez les requêtes que vous souhaitez appliquer.
-            <strong>Les requêtes non cochées seront supprimées définitivement.</strong>
+            Les requêtes sont cochées par défaut. <strong>Décochez celles que vous ne voulez pas appliquer : elles seront supprimées définitivement.</strong>
           </p>
           ${inboxRequests.map(r => `
             <label class="inbox-item">
