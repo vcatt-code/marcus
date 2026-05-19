@@ -421,6 +421,81 @@
     }
   }
 
+  // ====== INBOX : comptes rendus créés par Marcus Chat (Claude.ai) ======
+  let inboxFolderId = null;
+
+  async function driveFindInboxFolder() {
+    if (!folderId) folderId = await driveFindOrCreateFolder();
+    const q = encodeURIComponent(`name='inbox' and mimeType='application/vnd.google-apps.folder' and '${folderId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list inbox: ' + res.status);
+    const data = await res.json();
+    return (data.files && data.files.length) ? data.files[0].id : null;
+  }
+
+  async function driveDeleteFile(fileId) {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok && res.status !== 404) throw new Error('Drive delete: ' + res.status);
+  }
+
+  // Scanne l'inbox, applique les fichiers create_entretien, retourne le nombre créé.
+  async function processInboxEntretiens() {
+    inboxFolderId = await driveFindInboxFolder();
+    if (!inboxFolderId) return 0; // pas d'inbox = rien à faire
+    const q = encodeURIComponent(`'${inboxFolderId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,mimeType)&orderBy=createdTime`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list inbox content: ' + res.status);
+    const data = await res.json();
+    const files = (data.files || []).filter(f => f.mimeType !== 'application/vnd.google-apps.folder');
+
+    let created = 0;
+    for (const f of files) {
+      let parsed;
+      try {
+        const cr = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, {
+          headers: { Authorization: 'Bearer ' + accessToken }
+        });
+        if (!cr.ok) continue;
+        parsed = JSON.parse(await cr.text());
+      } catch (e) { console.warn('Fichier inbox illisible, ignoré', f.name, e); continue; }
+
+      // On ne traite QUE les create_entretien. Les autres actions (tâches)
+      // sont gérées par Marcus, on n'y touche pas.
+      if (!parsed || parsed.action !== 'create_entretien') continue;
+
+      const p = parsed.params || {};
+      const ent = {
+        id: uid(),
+        date: p.date || todayIso(),
+        titre: p.titre || 'Entretien sans titre',
+        domaine: p.domaine || '',
+        personnes: p.personnes || '',
+        lieu: p.lieu || '',
+        corpsHtml: p.corpsHtml || '',
+        updatedAt: new Date().toISOString(),
+        source: 'marcus-chat'
+      };
+      entretiens.push(ent);
+      created++;
+      // Suppression du fichier traité (comme pour les tâches Marcus)
+      try { await driveDeleteFile(f.id); }
+      catch (e) { console.warn('Suppression fichier inbox échouée', f.name, e); }
+    }
+
+    if (created > 0) {
+      try { await driveWrite(); }
+      catch (e) { console.error('Sauvegarde après import inbox échouée', e); }
+    }
+    return created;
+  }
+
   function scheduleSave() {
     if (saveTimer) clearTimeout(saveTimer);
     setSync('saving','enregistrement...');
@@ -459,6 +534,7 @@
     app.innerHTML = `
       <div class="topbar">
         <button class="nav-btn" id="back-marcus"><i class="ti ti-arrow-left"></i> Retour à Marcus</button>
+        <button id="refresh-inbox" title="Récupérer les comptes rendus créés via Marcus Chat"><i class="ti ti-refresh"></i> Synchroniser</button>
         <span id="sync-slot"></span>
         <span id="user-slot" style="margin-left:auto; font-size:12px; color:var(--color-text-secondary)"></span>
       </div>
@@ -505,6 +581,24 @@
       window.location.href = MARCUS_URL;
     };
     document.getElementById('new-ent').onclick = createNew;
+    const ri = document.getElementById('refresh-inbox');
+    if (ri) ri.onclick = async () => {
+      if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+      ri.disabled = true;
+      const orig = ri.innerHTML;
+      ri.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Synchronisation...';
+      try {
+        const n = await processInboxEntretiens();
+        render();
+        flashInbox(n > 0
+          ? `${n} compte${n>1?'s':''} rendu${n>1?'s':''} importé${n>1?'s':''}`
+          : 'Aucun nouveau compte rendu');
+      } catch (e) {
+        flashInbox('Erreur de synchronisation');
+        console.error(e);
+        ri.disabled = false; ri.innerHTML = orig;
+      }
+    };
     const sb = document.getElementById('search');
     if (sb) sb.oninput = (ev) => { searchTerm = ev.target.value; render(); restoreSearchFocus(); };
     document.querySelectorAll('[data-open]').forEach(el => {
@@ -768,10 +862,26 @@
       if (f) { dataFileId = f.id; entretiens = await driveRead(); }
       else { entretiens = []; }
       render();
+      // Récupération des comptes rendus créés par Marcus Chat (Claude.ai)
+      try {
+        const n = await processInboxEntretiens();
+        if (n > 0) {
+          render();
+          flashInbox(`${n} compte${n>1?'s':''} rendu${n>1?'s':''} importé${n>1?'s':''} depuis Marcus Chat`);
+        }
+      } catch (e) { console.warn('Traitement inbox entretiens échoué', e); }
     } catch(e) {
       console.error('post-auth', e);
       showAuth('Erreur de chargement : ' + e.message);
     }
+  }
+
+  function flashInbox(msg) {
+    const d = document.createElement('div');
+    d.textContent = msg;
+    d.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#185FA5;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+    document.body.appendChild(d);
+    setTimeout(() => { d.style.transition='opacity 0.5s'; d.style.opacity='0'; setTimeout(()=>d.remove(),500); }, 4000);
   }
 
   function bootstrap() {
