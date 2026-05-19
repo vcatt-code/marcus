@@ -169,10 +169,16 @@
     cursor: pointer;
     background: var(--color-bg-secondary);
   }
-  .entretien-item:hover { background: var(--color-bg-tertiary); }
+  .entretien-item:hover { filter: brightness(0.97); }
   .entretien-item.active {
     background: var(--color-bg-info);
     border-color: var(--color-border-info);
+    box-shadow: 0 0 0 2px var(--color-border-info);
+  }
+  /* Quand la case a une couleur de domaine (style inline), l'état actif est
+     matérialisé par l'anneau box-shadow plutôt que par un changement de fond. */
+  .entretien-item.active[style] {
+    box-shadow: 0 0 0 2px #1F1E1D;
   }
   .entretien-item .ei-title { font-weight: 600; font-size: 13px; }
   .entretien-item .ei-meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; }
@@ -309,6 +315,20 @@
     '#2E7D32', '#00897B', '#1565C0', '#3949AB',
     '#6A3FB0', '#A0288F', '#795548', '#546E7A'
   ];
+
+  // Domaines = onglets Marcus, avec les couleurs exactes des onglets actifs.
+  // L'ordre est celui de Marcus.
+  const DOMAINES = [
+    { id: 'PETRAM',      label: 'PETRAM',      bg: '#F9D6D6', text: '#6B1A1A', border: '#A32D2D' },
+    { id: 'HER',         label: 'HER',         bg: '#F9D6D6', text: '#6B1A1A', border: '#A32D2D' },
+    { id: 'VCC',         label: 'VCC',         bg: '#DCD9F0', text: '#312A6E', border: '#6A5FC4' },
+    { id: 'CATT.IMMO',   label: 'CATT.IMMO',   bg: '#DCD9F0', text: '#312A6E', border: '#6A5FC4' },
+    { id: 'CATT.INVEST', label: 'CATT.INVEST', bg: '#DCD9F0', text: '#312A6E', border: '#6A5FC4' },
+    { id: 'GAAC',        label: 'GAAC',        bg: '#D5E7F8', text: '#0C447C', border: '#185FA5' },
+    { id: 'NEST',        label: 'NEST',        bg: '#D6EBC8', text: '#1F3F08', border: '#4D8019' },
+    { id: 'REDAC',       label: 'REDAC',       bg: '#D6EBC8', text: '#1F3F08', border: '#4D8019' }
+  ];
+  function getDomaine(id) { return DOMAINES.find(d => d.id === id) || null; }
 
   function uid() { return 'e-' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
   function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -453,15 +473,20 @@
           </div>
           ${filtered.length === 0
             ? `<div class="list-empty">${entretiens.length===0 ? 'Aucun entretien. Cliquez sur « Nouveau ».' : 'Aucun résultat.'}</div>`
-            : filtered.map(e => `
-              <div class="entretien-item ${e.id===selectedId?'active':''}" data-open="${e.id}">
+            : filtered.map(e => {
+              const dom = getDomaine(e.domaine);
+              const styleAttr = dom
+                ? `style="background:${dom.bg}; border-color:${dom.border}; color:${dom.text}"`
+                : '';
+              return `
+              <div class="entretien-item ${e.id===selectedId?'active':''}" data-open="${e.id}" ${styleAttr}>
                 <div class="ei-title">${escapeHtml(e.titre || 'Sans titre')}</div>
-                <div class="ei-meta">
-                  ${fmtDateFr(e.date)}${e.lieu ? ' · ' + escapeHtml(e.lieu) : ''}
+                <div class="ei-meta" ${dom ? `style="color:${dom.text}; opacity:0.8"` : ''}>
+                  ${dom ? `<strong>${escapeHtml(dom.label)}</strong> · ` : ''}${fmtDateFr(e.date)}${e.lieu ? ' · ' + escapeHtml(e.lieu) : ''}
                   ${e.personnes ? '<br>' + escapeHtml(e.personnes) : ''}
                 </div>
               </div>
-            `).join('')}
+            `;}).join('')}
         </div>
 
         <div class="editor-panel">
@@ -510,8 +535,19 @@
       </div>
       <label>Titre</label>
       <input type="text" id="f-titre" value="${escapeHtml(e.titre||'')}" placeholder="Objet de l'entretien" />
-      <label>Personnes présentes</label>
-      <input type="text" id="f-personnes" value="${escapeHtml(e.personnes||'')}" placeholder="Noms séparés par des virgules" />
+      <div class="meta-grid">
+        <div>
+          <label>Domaine</label>
+          <select id="f-domaine">
+            <option value="">— Aucun —</option>
+            ${DOMAINES.map(d => `<option value="${d.id}" ${e.domaine===d.id?'selected':''}>${escapeHtml(d.label)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Personnes présentes</label>
+          <input type="text" id="f-personnes" value="${escapeHtml(e.personnes||'')}" placeholder="Noms séparés par des virgules" />
+        </div>
+      </div>
 
       <label>Compte rendu</label>
       <div class="toolbar" id="toolbar">
@@ -555,6 +591,8 @@
       const el = document.getElementById(id);
       if (el) el.oninput = markDirty;
     });
+    const domSel = document.getElementById('f-domaine');
+    if (domSel) domSel.onchange = markDirty;
     const editor = document.getElementById('editor');
     if (editor) editor.oninput = markDirty;
 
@@ -598,6 +636,7 @@
       date: document.getElementById('f-date')?.value || todayIso(),
       lieu: document.getElementById('f-lieu')?.value || '',
       titre: document.getElementById('f-titre')?.value || '',
+      domaine: document.getElementById('f-domaine')?.value || '',
       personnes: document.getElementById('f-personnes')?.value || '',
       corpsHtml: document.getElementById('editor')?.innerHTML || ''
     };
