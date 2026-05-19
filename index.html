@@ -4245,6 +4245,7 @@
         tm.finished = true;
         tm.endAt = null;
         stopTimerTick();
+        playChime();
         render();
         return;
       }
@@ -4254,6 +4255,38 @@
 
   function stopTimerTick() {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  }
+
+  // Carillon court et agréable synthétisé (pas de fichier externe).
+  // Trois notes ascendantes douces, type clochettes.
+  function playChime() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const now = ctx.currentTime;
+      // Notes : La5, Do#6, Mi6 (accord majeur clair et doux)
+      const notes = [880.0, 1108.73, 1318.51];
+      notes.forEach((freq, i) => {
+        const t0 = now + i * 0.16;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        // Enveloppe douce : attaque rapide, longue décroissance (effet cloche)
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.28, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 1.2);
+      });
+      // Ferme le contexte audio après extinction pour libérer les ressources
+      setTimeout(() => { try { ctx.close(); } catch (_) {} }, 1800);
+    } catch (e) {
+      console.warn('Carillon indisponible', e);
+    }
   }
 
   // Resynchronise le minuteur quand l'onglet redevient visible : si le temps
@@ -4268,6 +4301,7 @@
       tm.finished = true;
       tm.endAt = null;
       stopTimerTick();
+      playChime();
       render();
     } else {
       tm.remainingSec = Math.max(0, Math.round(remainMs / 1000));
