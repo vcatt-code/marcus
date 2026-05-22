@@ -819,6 +819,21 @@
     background: #FCEBEB;
     color: #791F1F;
   }
+  /* Quand l'indicateur est un button (mode erreur), il devient cliquable visiblement */
+  button.sync-indicator.error {
+    border: 0.5px solid #A32D2D;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  button.sync-indicator.error:hover {
+    background: #F8DADA;
+  }
   .sync-indicator i {
     font-size: 11px;
   }
@@ -1265,7 +1280,67 @@
     if (!slot) return;
     if (!status) { slot.innerHTML = ''; return; }
     const icons = { idle: 'ti-cloud-check', saving: 'ti-loader-2', error: 'ti-cloud-off' };
-    slot.innerHTML = `<span class="sync-indicator ${status}"><i class="ti ${icons[status]}"></i>${label || ''}</span>`;
+    // En mode erreur, l'indicateur devient un bouton cliquable pour relancer la sync.
+    if (status === 'error') {
+      slot.innerHTML = `<button class="sync-indicator error" id="sync-retry-btn" title="Cliquer pour relancer la synchronisation"><i class="ti ${icons.error}"></i>${label || 'erreur sync'} · réessayer</button>`;
+      const btn = document.getElementById('sync-retry-btn');
+      if (btn) btn.onclick = manualResync;
+    } else {
+      slot.innerHTML = `<span class="sync-indicator ${status}"><i class="ti ${icons[status]}"></i>${label || ''}</span>`;
+    }
+  }
+
+  // Resynchronisation manuelle : déclenchée par clic sur l'indicateur d'erreur.
+  // Si le jeton OAuth a expiré (cause la plus fréquente), on redemande l'accès.
+  async function manualResync() {
+    if (saveInFlight) return;
+    setSyncStatus('saving', 'reconnexion...');
+    try {
+      // Tentative directe avec le jeton courant
+      await driveWriteData(memoryStore);
+      lastSaveError = null;
+      setSyncStatus('idle', 'à jour');
+      flashWarning('Synchronisation rétablie');
+      return;
+    } catch (e) {
+      console.warn('Première tentative échouée, on tente une reconnexion', e);
+    }
+    // Si on est ici, c'est que la sync directe a échoué. On demande un nouveau jeton.
+    if (!tokenClient) { setSyncStatus('error', 'erreur sync'); return; }
+    try {
+      // Stocke un callback temporaire pour rejouer la sync après obtention du nouveau jeton
+      const origCallback = tokenClient.callback;
+      tokenClient.callback = async (resp) => {
+        // On rétablit le callback d'origine pour les futurs appels
+        tokenClient.callback = origCallback;
+        if (resp.error) {
+          setSyncStatus('error', 'erreur sync');
+          return;
+        }
+        accessToken = resp.access_token;
+        try {
+          const ttl = (parseInt(resp.expires_in, 10) || 3600) - 60;
+          sessionStorage.setItem('marcus_gtoken', JSON.stringify({
+            token: resp.access_token,
+            expiry: Date.now() + ttl * 1000
+          }));
+        } catch (_) {}
+        // Nouvelle tentative de sync avec le jeton frais
+        try {
+          await driveWriteData(memoryStore);
+          lastSaveError = null;
+          setSyncStatus('idle', 'à jour');
+          flashWarning('Synchronisation rétablie');
+        } catch (err2) {
+          console.error('Échec après reconnexion', err2);
+          setSyncStatus('error', 'erreur sync');
+        }
+      };
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch (e) {
+      console.error('Reconnexion impossible', e);
+      setSyncStatus('error', 'erreur sync');
+    }
   }
 
   const storage = {
@@ -4376,6 +4451,16 @@
     if (!document.hidden) resyncTimerOnVisible();
   });
   window.addEventListener('focus', resyncTimerOnVisible);
+
+  // Avertissement avant fermeture si une sauvegarde a échoué : sans ça, les
+  // modifications faites pendant que Marcus était en "erreur sync" sont perdues.
+  window.addEventListener('beforeunload', (ev) => {
+    if (lastSaveError) {
+      ev.preventDefault();
+      ev.returnValue = '';
+      return '';
+    }
+  });
 
   bootstrap();
 })();
