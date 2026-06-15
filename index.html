@@ -1292,6 +1292,52 @@
 
   // Resynchronisation manuelle : déclenchée par clic sur l'indicateur d'erreur.
   // Si le jeton OAuth a expiré (cause la plus fréquente), on redemande l'accès.
+  // Renouvellement silencieux du jeton OAuth avant expiration.
+  // Le jeton Google dure ~1h. On déclenche un renouvellement à 50 min : si la
+  // session Google du navigateur est toujours active (cas normal pour un usage
+  // perso), Google retourne un nouveau jeton sans aucune interaction.
+  let tokenRefreshTimer = null;
+
+  function scheduleTokenRefresh(expiresInSec) {
+    if (tokenRefreshTimer) { clearTimeout(tokenRefreshTimer); tokenRefreshTimer = null; }
+    // Marge : on renouvelle 10 min avant l'expiration annoncée par Google.
+    const ttl = (parseInt(expiresInSec, 10) || 3600);
+    const refreshInMs = Math.max(60, ttl - 600) * 1000;
+    tokenRefreshTimer = setTimeout(refreshTokenSilently, refreshInMs);
+  }
+
+  function refreshTokenSilently() {
+    if (!tokenClient) return;
+    try {
+      // On installe un callback temporaire qui ne touche QUE au renouvellement,
+      // sans interrompre l'app ni afficher d'écran de connexion.
+      const origCallback = tokenClient.callback;
+      tokenClient.callback = (resp) => {
+        tokenClient.callback = origCallback;
+        if (resp.error) {
+          // Échec silencieux : on ne dérange pas l'utilisateur, le bouton
+          // "Réessayer" prendra le relais si une sauvegarde échoue plus tard.
+          console.warn('Renouvellement silencieux du jeton refusé', resp.error);
+          return;
+        }
+        accessToken = resp.access_token;
+        try {
+          const newTtl = (parseInt(resp.expires_in, 10) || 3600) - 60;
+          sessionStorage.setItem('marcus_gtoken', JSON.stringify({
+            token: resp.access_token,
+            expiry: Date.now() + newTtl * 1000
+          }));
+        } catch (_) {}
+        // On programme le prochain renouvellement
+        scheduleTokenRefresh(resp.expires_in);
+      };
+      // prompt:'' = aucune interaction utilisateur si la session Google est active
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch (e) {
+      console.warn('Renouvellement silencieux impossible', e);
+    }
+  }
+
   async function manualResync() {
     if (saveInFlight) return;
     setSyncStatus('saving', 'reconnexion...');
@@ -4211,6 +4257,7 @@
             expiry: Date.now() + ttl * 1000
           }));
         } catch (e) { console.warn('sessionStorage indisponible', e); }
+        scheduleTokenRefresh(resp.expires_in);
         await onAuthenticated();
       }
     });
@@ -4223,7 +4270,9 @@
       const raw = sessionStorage.getItem('marcus_gtoken');
       if (!raw) return null;
       const obj = JSON.parse(raw);
-      if (obj && obj.token && obj.expiry && Date.now() < obj.expiry) return obj.token;
+      if (obj && obj.token && obj.expiry && Date.now() < obj.expiry) {
+        return { token: obj.token, expiry: obj.expiry };
+      }
       sessionStorage.removeItem('marcus_gtoken');
       return null;
     } catch (e) { return null; }
@@ -4235,10 +4284,14 @@
     // dans le même onglet), on l'utilise et on saute l'écran de connexion.
     const stored = getStoredToken();
     if (stored) {
-      accessToken = stored;
+      accessToken = stored.token;
+      // Programme le renouvellement silencieux en fonction du temps restant
+      const remainingSec = Math.max(60, Math.floor((stored.expiry - Date.now()) / 1000));
+      scheduleTokenRefresh(remainingSec);
       onAuthenticated().catch(e => {
         console.warn('Jeton stocké invalide, retour à la connexion', e);
         try { sessionStorage.removeItem('marcus_gtoken'); } catch(_) {}
+        if (tokenRefreshTimer) { clearTimeout(tokenRefreshTimer); tokenRefreshTimer = null; }
         accessToken = null;
         showAuthScreen(null);
       });
@@ -4434,6 +4487,7 @@
     folderId = null;
     dataFileId = null;
     memoryStore = {};
+    if (tokenRefreshTimer) { clearTimeout(tokenRefreshTimer); tokenRefreshTimer = null; }
     try { sessionStorage.removeItem('marcus_gtoken'); } catch(_) {}
     location.reload();
   }
