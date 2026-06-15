@@ -577,13 +577,19 @@
     `;
 
     document.getElementById('back-marcus').onclick = () => {
-      if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+      if (dirty && selectedId) {
+        cancelAutoSave();
+        saveCurrentSilent(selectedId);
+      }
       window.location.href = MARCUS_URL;
     };
     document.getElementById('new-ent').onclick = createNew;
     const ri = document.getElementById('refresh-inbox');
     if (ri) ri.onclick = async () => {
-      if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+      if (dirty && selectedId) {
+        cancelAutoSave();
+        saveCurrentSilent(selectedId);
+      }
       ri.disabled = true;
       const orig = ri.innerHTML;
       ri.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Synchronisation...';
@@ -666,20 +672,38 @@
       <div class="editor-actions">
         ${dirty ? '<span class="dirty-flag"><i class="ti ti-pencil" style="font-size:11px"></i> Modifications non enregistrées</span>' : ''}
         <button class="del-btn" id="del-ent"><i class="ti ti-trash" style="font-size:13px"></i> Supprimer</button>
-        <button id="cancel-ent">Annuler les modifs</button>
         <button class="save-btn" id="save-ent"><i class="ti ti-device-floppy" style="font-size:13px"></i> Enregistrer</button>
       </div>
     `;
   }
 
+  // Auto-save débouncé : 3 secondes après la dernière modification
+  let autoSaveTimer = null;
+  const AUTOSAVE_DELAY = 3000;
+
+  function scheduleAutoSave(entretienId) {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      autoSaveTimer = null;
+      // On vérifie que l'entretien est toujours celui en édition et que dirty est bien vrai
+      if (selectedId !== entretienId || !dirty) return;
+      saveCurrentSilent(entretienId);
+    }, AUTOSAVE_DELAY);
+  }
+
+  function cancelAutoSave() {
+    if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+  }
+
   function wireEditor(e) {
     const markDirty = () => {
-      if (!dirty) { dirty = true; const f=document.querySelector('.editor-actions'); }
+      if (!dirty) { dirty = true; }
       const flag = document.querySelector('.dirty-flag');
       if (!flag) {
         const act = document.querySelector('.editor-actions');
         if (act) act.insertAdjacentHTML('afterbegin','<span class="dirty-flag"><i class="ti ti-pencil" style="font-size:11px"></i> Modifications non enregistrées</span>');
       }
+      scheduleAutoSave(e.id);
     };
     ['f-date','f-lieu','f-titre','f-personnes'].forEach(id => {
       const el = document.getElementById(id);
@@ -713,10 +737,6 @@
     });
 
     document.getElementById('save-ent').onclick = () => saveCurrent(e.id);
-    document.getElementById('cancel-ent').onclick = () => {
-      if (dirty && !confirm('Annuler les modifications non enregistrées ?')) return;
-      dirty = false; render();
-    };
     document.getElementById('del-ent').onclick = () => {
       if (!confirm(`Supprimer définitivement l'entretien « ${e.titre||'Sans titre'} » ?`)) return;
       entretiens = entretiens.filter(x => x.id !== e.id);
@@ -746,8 +766,52 @@
     scheduleSave();
   }
 
+  // Variante de sauvegarde pour l'auto-save : pas de re-render complet (qui
+  // casserait le focus de l'éditeur pendant la frappe). On met à jour la liste
+  // à gauche de manière ciblée et on retire seulement le drapeau "modifs non enregistrées".
+  function saveCurrentSilent(id) {
+    const idx = entretiens.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const data = collectEditor();
+    entretiens[idx] = { ...entretiens[idx], ...data, updatedAt: new Date().toISOString() };
+    dirty = false;
+    // Retirer le drapeau "modifs non enregistrées" sans toucher au reste
+    const flag = document.querySelector('.dirty-flag');
+    if (flag) flag.remove();
+    // Mettre à jour la case de la liste à gauche (titre + meta) si elle existe
+    updateListItemInline(entretiens[idx]);
+    scheduleSave();
+  }
+
+  // Met à jour la case d'un entretien dans la liste de gauche sans re-render global
+  function updateListItemInline(ent) {
+    const item = document.querySelector(`[data-open="${ent.id}"]`);
+    if (!item) return;
+    const dom = getDomaine(ent.domaine);
+    if (dom) {
+      item.style.background = dom.bg;
+      item.style.borderColor = dom.border;
+      item.style.color = dom.text;
+    } else {
+      item.style.background = '';
+      item.style.borderColor = '';
+      item.style.color = '';
+    }
+    const title = item.querySelector('.ei-title');
+    if (title) title.textContent = ent.titre || 'Sans titre';
+    const meta = item.querySelector('.ei-meta');
+    if (meta) {
+      meta.innerHTML = `${dom ? '<strong>'+escapeHtml(dom.label)+'</strong> · ' : ''}${fmtDateFr(ent.date)}${ent.lieu ? ' · ' + escapeHtml(ent.lieu) : ''}${ent.personnes ? '<br>' + escapeHtml(ent.personnes) : ''}`;
+      if (dom) { meta.style.color = dom.text; meta.style.opacity = '0.8'; }
+      else { meta.style.color = ''; meta.style.opacity = ''; }
+    }
+  }
+
   function createNew() {
-    if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+    if (dirty && selectedId) {
+      cancelAutoSave();
+      saveCurrentSilent(selectedId);
+    }
     const e = {
       id: uid(),
       date: todayIso(),
@@ -767,7 +831,12 @@
   }
 
   function openEntretien(id) {
-    if (dirty && !confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+    // Avec l'auto-save, on force juste une sauvegarde immédiate si dirty,
+    // pas besoin d'embêter l'utilisateur avec un confirm.
+    if (dirty && selectedId) {
+      cancelAutoSave();
+      saveCurrentSilent(selectedId);
+    }
     selectedId = id;
     dirty = false;
     render();
@@ -934,7 +1003,16 @@
   }
 
   window.addEventListener('beforeunload', (ev) => {
-    if (dirty) { ev.preventDefault(); ev.returnValue = ''; }
+    if (dirty && selectedId) {
+      // Dernière chance de sauvegarder avant fermeture.
+      // Note : le navigateur limite les opérations async ici, mais saveCurrentSilent
+      // met au moins l'état à jour en mémoire. L'écriture Drive (fetch dans driveWrite)
+      // est lancée mais sa réussite n'est pas garantie si l'onglet ferme avant.
+      // L'avertissement reste un filet de sécurité.
+      try { saveCurrentSilent(selectedId); } catch (_) {}
+      ev.preventDefault();
+      ev.returnValue = '';
+    }
   });
 
   bootstrap();
