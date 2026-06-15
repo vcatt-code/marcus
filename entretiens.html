@@ -818,17 +818,58 @@
             expiry: Date.now() + ttl * 1000
           }));
         } catch (e) { console.warn('sessionStorage indisponible', e); }
+        scheduleTokenRefresh(resp.expires_in);
         await onAuth();
       }
     });
     gisInited = true; maybeStart();
   }
+  // Renouvellement silencieux du jeton OAuth avant expiration (~1h).
+  // Au déclenchement (50 min après obtention), Google renouvelle sans interaction
+  // tant que la session Google reste active dans le navigateur.
+  let tokenRefreshTimer = null;
+
+  function scheduleTokenRefresh(expiresInSec) {
+    if (tokenRefreshTimer) { clearTimeout(tokenRefreshTimer); tokenRefreshTimer = null; }
+    const ttl = (parseInt(expiresInSec, 10) || 3600);
+    const refreshInMs = Math.max(60, ttl - 600) * 1000;
+    tokenRefreshTimer = setTimeout(refreshTokenSilently, refreshInMs);
+  }
+
+  function refreshTokenSilently() {
+    if (!tokenClient) return;
+    try {
+      const origCallback = tokenClient.callback;
+      tokenClient.callback = (resp) => {
+        tokenClient.callback = origCallback;
+        if (resp.error) {
+          console.warn('Renouvellement silencieux du jeton refusé', resp.error);
+          return;
+        }
+        accessToken = resp.access_token;
+        try {
+          const newTtl = (parseInt(resp.expires_in, 10) || 3600) - 60;
+          sessionStorage.setItem('marcus_gtoken', JSON.stringify({
+            token: resp.access_token,
+            expiry: Date.now() + newTtl * 1000
+          }));
+        } catch (_) {}
+        scheduleTokenRefresh(resp.expires_in);
+      };
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch (e) {
+      console.warn('Renouvellement silencieux impossible', e);
+    }
+  }
+
   function getStoredToken() {
     try {
       const raw = sessionStorage.getItem('marcus_gtoken');
       if (!raw) return null;
       const obj = JSON.parse(raw);
-      if (obj && obj.token && obj.expiry && Date.now() < obj.expiry) return obj.token;
+      if (obj && obj.token && obj.expiry && Date.now() < obj.expiry) {
+        return { token: obj.token, expiry: obj.expiry };
+      }
       sessionStorage.removeItem('marcus_gtoken');
       return null;
     } catch (e) { return null; }
@@ -839,10 +880,13 @@
     // Réutilisation d'un jeton partagé (navigation depuis Marcus dans le même onglet)
     const stored = getStoredToken();
     if (stored) {
-      accessToken = stored;
+      accessToken = stored.token;
+      const remainingSec = Math.max(60, Math.floor((stored.expiry - Date.now()) / 1000));
+      scheduleTokenRefresh(remainingSec);
       onAuth().catch(e => {
         console.warn('Jeton stocké invalide', e);
         try { sessionStorage.removeItem('marcus_gtoken'); } catch(_) {}
+        if (tokenRefreshTimer) { clearTimeout(tokenRefreshTimer); tokenRefreshTimer = null; }
         accessToken = null;
         showAuth(null);
       });
