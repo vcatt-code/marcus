@@ -268,6 +268,16 @@
     border-color: var(--color-border-info);
     font-weight: 500;
   }
+  .claude-cr-btn {
+    background: #F2EBFB;
+    color: #4A2380;
+    border-color: #8A5BD1;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .claude-cr-btn:hover { background: #E6D9F5; }
   .del-btn { color: #A32D2D; margin-right: auto; }
   .dirty-flag { font-size: 11px; color: #633806; margin-right: auto; }
 </style>
@@ -672,6 +682,7 @@
       <div class="editor-actions">
         ${dirty ? '<span class="dirty-flag"><i class="ti ti-pencil" style="font-size:11px"></i> Modifications non enregistrées</span>' : ''}
         <button class="del-btn" id="del-ent"><i class="ti ti-trash" style="font-size:13px"></i> Supprimer</button>
+        <button class="claude-cr-btn" id="claude-cr-btn" title="Copier les notes et ouvrir un chat Claude pour mise en forme"><i class="ti ti-sparkles" style="font-size:13px"></i> Claude CR</button>
         <button class="save-btn" id="save-ent"><i class="ti ti-device-floppy" style="font-size:13px"></i> Enregistrer</button>
       </div>
     `;
@@ -737,6 +748,8 @@
     });
 
     document.getElementById('save-ent').onclick = () => saveCurrent(e.id);
+    const claudeBtn = document.getElementById('claude-cr-btn');
+    if (claudeBtn) claudeBtn.onclick = () => triggerClaudeCR(e.id);
     document.getElementById('del-ent').onclick = () => {
       if (!confirm(`Supprimer définitivement l'entretien « ${e.titre||'Sans titre'} » ?`)) return;
       entretiens = entretiens.filter(x => x.id !== e.id);
@@ -754,6 +767,60 @@
       personnes: document.getElementById('f-personnes')?.value || '',
       corpsHtml: document.getElementById('editor')?.innerHTML || ''
     };
+  }
+
+  // Extrait le texte brut du corps de l'éditeur, sauvegarde les modifs en cours,
+  // copie l'ensemble (instruction + notes) dans le presse-papier, puis ouvre un
+  // chat Claude éphémère. Le Ctrl+V manuel finalise l'envoi côté Claude.
+  async function triggerClaudeCR(id) {
+    // 1. Force un enregistrement immédiat pour ne pas perdre les notes en cours
+    if (dirty && selectedId === id) {
+      cancelAutoSave();
+      saveCurrentSilent(id);
+    }
+
+    // 2. Récupère le contenu du corps en texte brut (l'éditeur stocke en HTML)
+    const editorEl = document.getElementById('editor');
+    const rawText = editorEl ? (editorEl.innerText || editorEl.textContent || '').trim() : '';
+    if (!rawText) {
+      flashInbox('La zone de prise de notes est vide, rien à transmettre.');
+      return;
+    }
+
+    const instruction = 'met en forme les éléments pris en notes, le tout dans un compte rendu structuré; n\'invente pas d\'information supplémentaire';
+    const payload = instruction + '\n\n---\n\n' + rawText;
+
+    // 3. Copie dans le presse-papier (API moderne avec fallback)
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(payload);
+        copied = true;
+      }
+    } catch (e) {
+      console.warn('clipboard.writeText échoué, tentative fallback', e);
+    }
+    if (!copied) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = payload;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) { console.warn('Fallback copy échoué', e); }
+    }
+
+    // 4. Ouvre le chat Claude éphémère dans un nouvel onglet
+    window.open('https://claude.ai/new?incognito=', '_blank', 'noopener');
+
+    // 5. Retour utilisateur
+    if (copied) {
+      flashInbox('Notes copiées dans le presse-papier. Colle (Ctrl+V) dans le chat Claude qui vient de s\'ouvrir.');
+    } else {
+      flashInbox('Onglet Claude ouvert. La copie automatique a échoué, copie tes notes manuellement.');
+    }
   }
 
   function saveCurrent(id) {
