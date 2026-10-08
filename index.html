@@ -501,13 +501,17 @@
     gap: 12px;
     align-items: stretch;
     margin-bottom: 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .dash-wrap {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
     flex: 1;
     min-width: 0;
+    max-width: 100%;
   }
   @media (max-width: 1100px) {
     .dash-wrap { grid-template-columns: repeat(2, 1fr); }
@@ -623,6 +627,8 @@
     min-height: 80px;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
   }
   .dash-zone-head {
     display: flex;
@@ -662,9 +668,26 @@
   }
   .dash-item:hover { background: var(--color-bg-secondary); }
   .dash-item-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-primary); font-weight: 500; }
-  .dash-item-due { font-size: 11px; color: var(--color-text-tertiary); white-space: nowrap; font-weight: 500; }
-  .dash-item-due.urgent { color: #C62828; font-weight: 700; }
-  .dash-item-due.soon { color: #B04A00; font-weight: 600; }
+  .dash-item-due {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .dash-item-due.urgent {
+    color: #FFFFFF;
+    background: #D32F2F;
+    font-weight: 700;
+    font-size: 11.5px;
+  }
+  .dash-item-due.soon {
+    color: #FFFFFF;
+    background: #EF8C00;
+    font-weight: 700;
+    font-size: 11.5px;
+  }
   .dash-item-marker {
     width: 3px;
     align-self: stretch;
