@@ -174,6 +174,100 @@
     font-size: 14px;
   }
   .todo-body { padding: 8px 10px 10px; }
+
+  /* Zone images d'une liste : grille 3 colonnes, format fixe */
+  .list-images {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 0.5px dashed var(--color-border-tertiary);
+  }
+  .list-image-thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 4px;
+    border: 0.5px solid var(--color-border-tertiary);
+    cursor: zoom-in;
+    background: var(--color-bg-secondary);
+  }
+  .list-image-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .list-image-thumb .img-del {
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: 10px;
+  }
+  .list-image-thumb:hover .img-del { opacity: 1; }
+  .list-image-thumb .img-del:hover { background: #C62828; }
+  .add-image-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    padding: 3px 6px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    opacity: 0.6;
+    margin-left: 4px;
+  }
+  .todo-card:hover .add-image-btn { opacity: 1; }
+  .add-image-btn:hover { color: var(--color-text-primary); background: var(--color-bg-secondary); border-radius: 3px; }
+
+  /* Lightbox */
+  .lightbox-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    animation: lightbox-in 0.15s ease-out;
+  }
+  @keyframes lightbox-in { from { opacity: 0; } to { opacity: 1; } }
+  .lightbox-bg img {
+    max-width: 95vw;
+    max-height: 95vh;
+    object-fit: contain;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 18px; right: 20px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .lightbox-close:hover { background: rgba(255,255,255,0.3); }
   .todo-item {
     display: flex;
     align-items: flex-start;
@@ -1502,6 +1596,9 @@
     editingTask: null, // `${listId}::${taskId}` quand une tâche est en cours d'édition
     editingPalette: false,
     calVisible: false, // calendrier caché par défaut, bouton pour l'afficher
+    lightboxImage: null, // {listId, imgId} de l'image affichée en grand
+    hoverListId: null,  // id de liste survolée (pour cibler le collage Ctrl+V)
+    lastFocusedListId: null, // id de la dernière liste cliquée (fallback)
     timer: {
       totalSec: 15 * 60,   // durée configurée
       remainingSec: 15 * 60,
@@ -2171,7 +2268,7 @@
           <button class="icon-btn" data-action="edit-list" data-list="${list.id}" title="Modifier" style="color:${c.text}"><i class="ti ti-edit" style="font-size:13px"></i></button>
           <button class="${pinClass}" data-action="pin-list" data-list="${list.id}" title="${pinTitle}"><i class="ti ${pinIcon}"></i></button>
         </div>
-        <div class="todo-body">
+        <div class="todo-body" data-list-body="${list.id}" tabindex="0">
           ${tasksHtml || '<div style="font-size:12px; color:var(--color-text-tertiary); padding:3px 0">Aucune tâche</div>'}
           ${isAddingTop ? `
             <div class="add-task-row">
@@ -2180,8 +2277,21 @@
               <button class="icon-btn" data-action="cancel-task"><i class="ti ti-x"></i></button>
             </div>
           ` : `
-            <button class="add-btn" data-action="show-add-task" data-list="${list.id}" data-parent="" style="margin-top:4px"><i class="ti ti-plus" style="font-size:11px"></i> Tâche</button>
+            <div style="margin-top:4px; display:flex; align-items:center; gap:2px">
+              <button class="add-btn" data-action="show-add-task" data-list="${list.id}" data-parent=""><i class="ti ti-plus" style="font-size:11px"></i> Tâche</button>
+              <button class="add-image-btn" data-action="pick-image" data-list="${list.id}" title="Ajouter une image (ou coller depuis le presse-papier)"><i class="ti ti-photo" style="font-size:11px"></i> Image</button>
+            </div>
           `}
+          ${(list.images && list.images.length > 0) ? `
+            <div class="list-images">
+              ${list.images.map(img => `
+                <div class="list-image-thumb" data-action="open-image" data-list="${list.id}" data-img="${img.id}">
+                  <img src="${img.dataUrl}" alt="">
+                  <button class="img-del" data-action="del-image" data-list="${list.id}" data-img="${img.id}" title="Supprimer"><i class="ti ti-x"></i></button>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -2367,6 +2477,27 @@
             `}
           </div>
         </div>
+      </div>
+    `;
+  }
+
+  function renderLightbox() {
+    if (!state.lightboxImage) return '';
+    const { listId, imgId } = state.lightboxImage;
+    let img = null;
+    TAB_IDS.forEach(t => {
+      (state.lists[t] || []).forEach(l => {
+        if (l.id === listId && l.images) {
+          const found = l.images.find(i => i.id === imgId);
+          if (found) img = found;
+        }
+      });
+    });
+    if (!img) return '';
+    return `
+      <div class="lightbox-bg" data-action="close-lightbox">
+        <img src="${img.dataUrl}" alt="">
+        <button class="lightbox-close" data-action="close-lightbox" title="Fermer"><i class="ti ti-x"></i></button>
       </div>
     `;
   }
@@ -2799,6 +2930,7 @@
       ${renderPaletteEditor()}
       ${renderPopover()}
       ${renderTooltip()}
+      ${renderLightbox()}
     `;
     document.getElementById('pro-app').innerHTML = html;
     attach();
@@ -2857,6 +2989,16 @@
     document.querySelectorAll('[data-action="cal-click"]').forEach(el => {
       el.onmouseenter = handleCalHover;
       el.onmouseleave = () => { state.tooltip = null; renderTooltipOnly(); };
+    });
+    // Suivi focus/survol des listes pour savoir où coller une image collée via Ctrl+V
+    document.querySelectorAll('[data-list-body]').forEach(el => {
+      const lid = el.dataset.listBody;
+      el.addEventListener('mouseenter', () => { state.hoverListId = lid; });
+      el.addEventListener('mouseleave', () => {
+        if (state.hoverListId === lid) state.hoverListId = null;
+      });
+      el.addEventListener('click', () => { state.lastFocusedListId = lid; });
+      el.addEventListener('focus', () => { state.lastFocusedListId = lid; });
     });
     document.querySelectorAll('[data-list-drag]').forEach(el => {
       // Empêcher le drag de la liste si l'utilisateur commence depuis une poignée de tâche
@@ -3468,6 +3610,37 @@
       render();
     } else if (a === 'open-entretiens') {
       window.location.href = 'entretiens.html';
+    } else if (a === 'pick-image') {
+      // Ouvrir le sélecteur de fichier
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (ev) => {
+        const file = ev.target.files && ev.target.files[0];
+        if (!file) return;
+        await addImageToList(listId, file);
+      };
+      input.click();
+    } else if (a === 'open-image') {
+      const imgId = e.currentTarget.dataset.img;
+      state.lightboxImage = { listId, imgId };
+      render();
+    } else if (a === 'close-lightbox') {
+      state.lightboxImage = null;
+      render();
+    } else if (a === 'del-image') {
+      const imgId = e.currentTarget.dataset.img;
+      if (!confirm('Supprimer cette image ?')) return;
+      let found = null;
+      TAB_IDS.forEach(t => {
+        const l = (state.lists[t] || []).find(l => l.id === listId);
+        if (l) found = l;
+      });
+      if (found && found.images) {
+        found.images = found.images.filter(i => i.id !== imgId);
+        save();
+        render();
+      }
     } else if (a === 'toggle-calendar') {
       state.calVisible = !state.calVisible;
       render();
@@ -4478,6 +4651,92 @@
     }
   }
 
+  // ============ IMAGES DANS LES LISTES ============
+  // Compresse une image (File ou dataURL) : max 400px côté long, JPEG qualité 70
+  async function compressImage(fileOrBlob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 400;
+          let { width, height } = img;
+          if (width > height && width > MAX) {
+            height = Math.round(height * (MAX / width));
+            width = MAX;
+          } else if (height >= width && height > MAX) {
+            width = Math.round(width * (MAX / height));
+            height = MAX;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(fileOrBlob);
+    });
+  }
+
+  // Ajoute une image à une liste (compression + sauvegarde)
+  async function addImageToList(listId, fileOrBlob) {
+    let foundList = null;
+    TAB_IDS.forEach(t => {
+      const l = (state.lists[t] || []).find(l => l.id === listId);
+      if (l) foundList = l;
+    });
+    if (!foundList) { console.warn('Liste introuvable', listId); return; }
+    try {
+      const dataUrl = await compressImage(fileOrBlob);
+      if (!foundList.images) foundList.images = [];
+      foundList.images.push({
+        id: 'img-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        dataUrl: dataUrl,
+        addedAt: new Date().toISOString()
+      });
+      save();
+      render();
+      flashWarning('Image ajoutée');
+    } catch (e) {
+      console.error('Erreur traitement image', e);
+      flashWarning('Erreur lors du traitement de l\'image');
+    }
+  }
+
+  // Gestionnaire global de collage : si on colle une image avec une liste "active",
+  // on l'ajoute à cette liste.
+  async function handleGlobalPaste(ev) {
+    // Si on est dans un input/textarea classique, laisser le navigateur gérer
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      // Ne pas intercepter : l'utilisateur colle probablement du texte dans un champ
+      return;
+    }
+    const items = (ev.clipboardData || window.clipboardData)?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const blob = item.getAsFile();
+        if (!blob) continue;
+        // Déterminer la liste cible : la dernière liste qui a eu le focus, ou celle survolée
+        const targetListId = state.lastFocusedListId || state.hoverListId;
+        if (!targetListId) {
+          flashWarning('Clique d\'abord sur une liste pour y coller une image');
+          return;
+        }
+        ev.preventDefault();
+        await addImageToList(targetListId, blob);
+        return;
+      }
+    }
+  }
+
   // Parse une saisie de durée : accepte "HH:MM:SS", "MM:SS", "MM", "90" (minutes), "1h30"
   function parseTimerInput(str) {
     str = (str || '').trim().toLowerCase();
@@ -4527,6 +4786,17 @@
 
   // Quand l'onglet redevient visible, on resynchronise immédiatement le minuteur
   // (le navigateur a pu suspendre setInterval pendant que l'onglet était caché).
+  // Collage global : écoute les Ctrl+V au niveau document pour attraper les images
+  document.addEventListener('paste', handleGlobalPaste);
+
+  // Touche Échap pour fermer la lightbox
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && state.lightboxImage) {
+      state.lightboxImage = null;
+      render();
+    }
+  });
+
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) resyncTimerOnVisible();
   });
