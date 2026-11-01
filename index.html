@@ -200,6 +200,16 @@
     object-fit: cover;
     display: block;
   }
+  .list-image-thumb.uploading { opacity: 0.6; }
+  .list-image-thumb .img-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+    font-size: 18px;
+  }
   .list-image-thumb .img-del {
     position: absolute;
     top: 3px; right: 3px;
@@ -268,6 +278,12 @@
     font-size: 16px;
   }
   .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+  .lightbox-spinner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
   .todo-item {
     display: flex;
     align-items: flex-start;
@@ -2285,8 +2301,8 @@
           ${(list.images && list.images.length > 0) ? `
             <div class="list-images">
               ${list.images.map(img => `
-                <div class="list-image-thumb" data-action="open-image" data-list="${list.id}" data-img="${img.id}">
-                  <img src="${img.dataUrl}" alt="">
+                <div class="list-image-thumb ${img.uploading ? 'uploading' : ''}" data-action="open-image" data-list="${list.id}" data-img="${img.id}">
+                  ${img.thumbDataUrl ? `<img src="${img.thumbDataUrl}" alt="">` : '<div class="img-placeholder"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i></div>'}
                   <button class="img-del" data-action="del-image" data-list="${list.id}" data-img="${img.id}" title="Supprimer"><i class="ti ti-x"></i></button>
                 </div>
               `).join('')}
@@ -2483,7 +2499,7 @@
 
   function renderLightbox() {
     if (!state.lightboxImage) return '';
-    const { listId, imgId } = state.lightboxImage;
+    const { listId, imgId, fullDataUrl, loading } = state.lightboxImage;
     let img = null;
     TAB_IDS.forEach(t => {
       (state.lists[t] || []).forEach(l => {
@@ -2494,9 +2510,12 @@
       });
     });
     if (!img) return '';
+    // Pendant le chargement, on affiche la miniature (floue par agrandissement) + un spinner
+    const src = fullDataUrl || img.thumbDataUrl;
     return `
       <div class="lightbox-bg" data-action="close-lightbox">
-        <img src="${img.dataUrl}" alt="">
+        ${src ? `<img src="${src}" alt="" style="${loading ? 'filter:blur(8px); opacity:0.8' : ''}">` : ''}
+        ${loading ? '<div class="lightbox-spinner"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite; font-size:40px; color:white"></i></div>' : ''}
         <button class="lightbox-close" data-action="close-lightbox" title="Fermer"><i class="ti ti-x"></i></button>
       </div>
     `;
@@ -3456,6 +3475,16 @@
       state.confirmDelete = false; render();
     } else if (a === 'confirm-delete') {
       if (!state.editingList?.id) return;
+      // Retrouver la liste réelle (pas la copie d'édition) pour accéder à ses images
+      const realList = state.lists[state.tab].find(l => l.id === state.editingList.id);
+      // Supprimer les fichiers image Drive associés (en arrière-plan, non bloquant)
+      if (realList && realList.images && realList.images.length > 0) {
+        realList.images.forEach(img => {
+          if (img.driveFileId) {
+            driveDeleteImageFile(img.driveFileId).catch(e => console.warn('Suppression image Drive échouée', e));
+          }
+        });
+      }
       state.lists[state.tab] = state.lists[state.tab].filter(l => l.id !== state.editingList.id);
       state.editingList = null; state.confirmDelete = false;
       save(); render();
@@ -3623,8 +3652,49 @@
       input.click();
     } else if (a === 'open-image') {
       const imgId = e.currentTarget.dataset.img;
-      state.lightboxImage = { listId, imgId };
+      // Chercher l'image pour récupérer son driveFileId
+      let targetImg = null;
+      TAB_IDS.forEach(t => {
+        (state.lists[t] || []).forEach(l => {
+          if (l.id === listId && l.images) {
+            const f = l.images.find(i => i.id === imgId);
+            if (f) targetImg = f;
+          }
+        });
+      });
+      if (!targetImg || targetImg.uploading) return;
+
+      if (!targetImg.driveFileId) {
+        // Pas d'id Drive : on affiche juste la miniature agrandie
+        state.lightboxImage = { listId, imgId, fullDataUrl: targetImg.thumbDataUrl, loading: false };
+        render();
+        return;
+      }
+      // Si déjà en cache, affichage immédiat sans spinner
+      if (fullImageCache[targetImg.driveFileId]) {
+        state.lightboxImage = { listId, imgId, fullDataUrl: fullImageCache[targetImg.driveFileId], loading: false };
+        render();
+        return;
+      }
+      // Sinon ouverture en mode "loading" puis téléchargement
+      state.lightboxImage = { listId, imgId, fullDataUrl: null, loading: true };
       render();
+      loadFullImage(targetImg.driveFileId)
+        .then(dataUrl => {
+          // Ne pas écraser si l'utilisateur a déjà fermé entre-temps
+          if (!state.lightboxImage || state.lightboxImage.imgId !== imgId) return;
+          state.lightboxImage.fullDataUrl = dataUrl;
+          state.lightboxImage.loading = false;
+          render();
+        })
+        .catch(err => {
+          console.error('Chargement image grand format échoué', err);
+          if (state.lightboxImage && state.lightboxImage.imgId === imgId) {
+            state.lightboxImage.loading = false;
+            render();
+          }
+          flashWarning('Impossible de charger l\'image grand format');
+        });
     } else if (a === 'close-lightbox') {
       state.lightboxImage = null;
       render();
@@ -3637,9 +3707,14 @@
         if (l) found = l;
       });
       if (found && found.images) {
+        const toDelete = found.images.find(i => i.id === imgId);
         found.images = found.images.filter(i => i.id !== imgId);
         save();
         render();
+        // Suppression du fichier Drive en arrière-plan (sans bloquer l'UI)
+        if (toDelete && toDelete.driveFileId) {
+          driveDeleteImageFile(toDelete.driveFileId).catch(e => console.warn('Suppression Drive échouée', e));
+        }
       }
     } else if (a === 'toggle-calendar') {
       state.calVisible = !state.calVisible;
@@ -3889,6 +3964,95 @@
         body: content
       });
       if (!res.ok) throw new Error('Drive update file failed: ' + res.status);
+    }
+  }
+
+  // ============ GESTION DES IMAGES SUR DRIVE ============
+  let imagesFolderId = null;
+
+  async function driveFindOrCreateImagesFolder() {
+    if (imagesFolderId) return imagesFolderId;
+    if (!folderId) folderId = await driveFindOrCreateFolder();
+    const q = encodeURIComponent(`name='images' and mimeType='application/vnd.google-apps.folder' and '${folderId}' in parents and trashed=false`);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive list images folder: ' + res.status);
+    const data = await res.json();
+    if (data.files && data.files.length) {
+      imagesFolderId = data.files[0].id;
+      return imagesFolderId;
+    }
+    const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'images', mimeType: 'application/vnd.google-apps.folder', parents: [folderId] })
+    });
+    if (!cr.ok) throw new Error('Drive create images folder: ' + cr.status);
+    imagesFolderId = (await cr.json()).id;
+    return imagesFolderId;
+  }
+
+  // Convertit un dataURL en Blob pour l'upload
+  function dataUrlToBlob(dataUrl) {
+    const [header, b64] = dataUrl.split(',');
+    const mimeMatch = header.match(/data:([^;]+)/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  // Upload d'une image sur Drive. Renvoie l'id Drive du fichier créé.
+  async function driveUploadImage(dataUrl, name) {
+    const parentId = await driveFindOrCreateImagesFolder();
+    const blob = dataUrlToBlob(dataUrl);
+    const boundary = '-------marcusimg_' + Math.random().toString(36).slice(2);
+    const metadata = { name: name || ('img-' + Date.now() + '.jpg'), parents: [parentId], mimeType: blob.type };
+    // On construit un multipart avec le binaire encodé en base64
+    const b64 = dataUrl.split(',')[1];
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+      JSON.stringify(metadata) +
+      `\r\n--${boundary}\r\nContent-Type: ${blob.type}\r\nContent-Transfer-Encoding: base64\r\n\r\n` +
+      b64 +
+      `\r\n--${boundary}--`;
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'multipart/related; boundary=' + boundary
+      },
+      body
+    });
+    if (!res.ok) throw new Error('Drive upload image failed: ' + res.status);
+    const data = await res.json();
+    return data.id;
+  }
+
+  // Télécharge une image depuis Drive et renvoie un dataURL (pour affichage lightbox)
+  async function driveDownloadImage(driveFileId) {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok) throw new Error('Drive download image failed: ' + res.status);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function driveDeleteImageFile(driveFileId) {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!res.ok && res.status !== 404) {
+      console.warn('Drive delete image failed:', res.status);
     }
   }
 
@@ -4652,29 +4816,27 @@
   }
 
   // ============ IMAGES DANS LES LISTES ============
-  // Compresse une image (File ou dataURL) : max 400px côté long, JPEG qualité 70
-  async function compressImage(fileOrBlob) {
+  // Redimensionne une image à une taille max donnée, renvoie un dataURL JPEG
+  async function resizeImageTo(fileOrBlob, maxSize, quality) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const img = new Image();
         img.onload = () => {
-          const MAX = 400;
           let { width, height } = img;
-          if (width > height && width > MAX) {
-            height = Math.round(height * (MAX / width));
-            width = MAX;
-          } else if (height >= width && height > MAX) {
-            width = Math.round(width * (MAX / height));
-            height = MAX;
+          if (width > height && width > maxSize) {
+            height = Math.round(height * (maxSize / width));
+            width = maxSize;
+          } else if (height >= width && height > maxSize) {
+            width = Math.round(width * (maxSize / height));
+            height = maxSize;
           }
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(dataUrl);
+          resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.onerror = reject;
         img.src = reader.result;
@@ -4684,7 +4846,9 @@
     });
   }
 
-  // Ajoute une image à une liste (compression + sauvegarde)
+  // Ajoute une image à une liste :
+  // 1. Génère la version grand format (1600px, JPEG 85) et l'uploade sur Drive
+  // 2. Génère la miniature (300px, JPEG 70) et la garde en base64 dans donnees.json
   async function addImageToList(listId, fileOrBlob) {
     let foundList = null;
     TAB_IDS.forEach(t => {
@@ -4692,21 +4856,54 @@
       if (l) foundList = l;
     });
     if (!foundList) { console.warn('Liste introuvable', listId); return; }
+
+    const imgId = 'img-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    // Ajout immédiat d'une entrée "en cours" pour feedback visuel
+    if (!foundList.images) foundList.images = [];
+    const pending = {
+      id: imgId,
+      thumbDataUrl: '',
+      driveFileId: null,
+      uploading: true,
+      addedAt: new Date().toISOString()
+    };
+    foundList.images.push(pending);
+    render();
+    flashWarning('Traitement de l\'image...');
+
     try {
-      const dataUrl = await compressImage(fileOrBlob);
-      if (!foundList.images) foundList.images = [];
-      foundList.images.push({
-        id: 'img-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
-        dataUrl: dataUrl,
-        addedAt: new Date().toISOString()
-      });
+      // Génération des deux versions en parallèle
+      const [bigDataUrl, thumbDataUrl] = await Promise.all([
+        resizeImageTo(fileOrBlob, 1600, 0.85),
+        resizeImageTo(fileOrBlob, 300, 0.7)
+      ]);
+      // Upload de la version grand format sur Drive
+      const driveFileId = await driveUploadImage(bigDataUrl, imgId + '.jpg');
+      // Mise à jour de l'entrée avec les infos finales
+      pending.thumbDataUrl = thumbDataUrl;
+      pending.driveFileId = driveFileId;
+      pending.uploading = false;
       save();
       render();
       flashWarning('Image ajoutée');
     } catch (e) {
-      console.error('Erreur traitement image', e);
-      flashWarning('Erreur lors du traitement de l\'image');
+      console.error('Erreur upload image', e);
+      // Retrait de l'entrée en cas d'échec
+      foundList.images = foundList.images.filter(i => i.id !== imgId);
+      render();
+      flashWarning('Erreur lors de l\'upload de l\'image');
     }
+  }
+
+  // Cache des images grand format téléchargées, pour éviter de re-télécharger
+  // à chaque ouverture de la lightbox pendant la session.
+  const fullImageCache = {};
+
+  async function loadFullImage(driveFileId) {
+    if (fullImageCache[driveFileId]) return fullImageCache[driveFileId];
+    const dataUrl = await driveDownloadImage(driveFileId);
+    fullImageCache[driveFileId] = dataUrl;
+    return dataUrl;
   }
 
   // Gestionnaire global de collage : si on colle une image avec une liste "active",
