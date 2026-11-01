@@ -3009,15 +3009,16 @@
       el.onmouseenter = handleCalHover;
       el.onmouseleave = () => { state.tooltip = null; renderTooltipOnly(); };
     });
-    // Suivi focus/survol des listes pour savoir où coller une image collée via Ctrl+V
+    // Suivi focus/survol des listes pour savoir où coller une image collée via Ctrl+V.
+    // On utilise mousedown en phase CAPTURE pour s'exécuter avant les stopPropagation
+    // des handlers d'actions (boutons dans la liste, cases à cocher, etc.).
     document.querySelectorAll('[data-list-body]').forEach(el => {
       const lid = el.dataset.listBody;
       el.addEventListener('mouseenter', () => { state.hoverListId = lid; });
       el.addEventListener('mouseleave', () => {
         if (state.hoverListId === lid) state.hoverListId = null;
       });
-      el.addEventListener('click', () => { state.lastFocusedListId = lid; });
-      el.addEventListener('focus', () => { state.lastFocusedListId = lid; });
+      el.addEventListener('mousedown', () => { state.lastFocusedListId = lid; }, true);
     });
     document.querySelectorAll('[data-list-drag]').forEach(el => {
       // Empêcher le drag de la liste si l'utilisateur commence depuis une poignée de tâche
@@ -4909,29 +4910,63 @@
   // Gestionnaire global de collage : si on colle une image avec une liste "active",
   // on l'ajoute à cette liste.
   async function handleGlobalPaste(ev) {
-    // Si on est dans un input/textarea classique, laisser le navigateur gérer
+    // Si on est en train d'éditer du texte dans un input/textarea, laisser faire
     const activeEl = document.activeElement;
     if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-      // Ne pas intercepter : l'utilisateur colle probablement du texte dans un champ
       return;
     }
-    const items = (ev.clipboardData || window.clipboardData)?.items;
-    if (!items) return;
-    for (const item of items) {
-      if (item.kind === 'file' && item.type.startsWith('image/')) {
-        const blob = item.getAsFile();
-        if (!blob) continue;
-        // Déterminer la liste cible : la dernière liste qui a eu le focus, ou celle survolée
-        const targetListId = state.lastFocusedListId || state.hoverListId;
-        if (!targetListId) {
-          flashWarning('Clique d\'abord sur une liste pour y coller une image');
-          return;
+
+    const cd = ev.clipboardData || window.clipboardData;
+    if (!cd) {
+      console.warn('[paste] Pas de clipboardData accessible');
+      return;
+    }
+
+    // Chercher une image dans le presse-papier via deux voies : items et files
+    let imageBlob = null;
+
+    // Voie 1 : items
+    if (cd.items && cd.items.length) {
+      for (const item of cd.items) {
+        if (item.type && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) { imageBlob = file; break; }
         }
-        ev.preventDefault();
-        await addImageToList(targetListId, blob);
-        return;
       }
     }
+
+    // Voie 2 : files
+    if (!imageBlob && cd.files && cd.files.length) {
+      for (const f of cd.files) {
+        if (f.type && f.type.startsWith('image/')) {
+          imageBlob = f; break;
+        }
+      }
+    }
+
+    if (!imageBlob) {
+      // Rien d'image : on laisse le navigateur gérer normalement (texte, etc.)
+      return;
+    }
+
+    // Ciblage de la liste : priorité à ce qui est survolé au moment du Ctrl+V
+    let targetListId = state.hoverListId || state.lastFocusedListId;
+
+    // Fallback : s'il y a une seule liste visible à l'écran, on la prend
+    if (!targetListId) {
+      const allBodies = document.querySelectorAll('[data-list-body]');
+      if (allBodies.length === 1) {
+        targetListId = allBodies[0].dataset.listBody;
+      }
+    }
+
+    if (!targetListId) {
+      flashWarning('Survole une liste avec la souris avant de coller l\'image');
+      return;
+    }
+
+    ev.preventDefault();
+    await addImageToList(targetListId, imageBlob);
   }
 
   // Parse une saisie de durée : accepte "HH:MM:SS", "MM:SS", "MM", "90" (minutes), "1h30"
